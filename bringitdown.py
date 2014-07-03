@@ -2,7 +2,7 @@ import random
 import threading
 random.seed('random')
 
-def bring_it_down(iface="en0", spam_packet='HOST:all|GET:spam'):
+def bring_it_down(iface="en1", spam_packet='HOST:all|GET:spam'):
     import dnet
     datalink = dnet.eth(iface)
     h = datalink.get().encode('hex_codec')
