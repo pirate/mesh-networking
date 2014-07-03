@@ -1,16 +1,15 @@
 Mesh Networking:
 ================
 
-The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh networking routing possible.  Several components will be taken from the existing stack but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
+The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
   
-The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py` and a controller that can spawn multiple nodes and hook them up to eachother using real, or virtual network interfaces in `multinode.py`.  
+The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to eachother  using real or virtual network interfaces.
   
 
-  
 Goals (Zooko's Triangle):
 -------------------------
 
-1. Decentralized
+1. Decentralized (No CAs, no SPOF DNS servers)
 2. Human meaningful (provide DNS that securely resolves to our IPV6 mesh eeee:::::::01 address format)
 3. Secure (packets go only to their intended destination)
 
@@ -39,6 +38,7 @@ The more existing pieces of the existing internet framework we can use, the easi
 
 MESHP packet structure:  
 -----------------------
+
 + Ethernet frame (normal ethernet with MAC addressing)  
 + MESHP Header (instead of IP header)  
 + TCP Header (normal TCP)  
@@ -57,7 +57,10 @@ data = rawSocket.readto(1024)
 ```
 
    
-On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  You're forced to specify a port to bind to, but you are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets send to that port (3003).  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
+On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  
+It's difficult to read data from an interface at the ethernet level on FreeBSD-based systems.  It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them.
+
+We're forced by to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets send to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
 
 ```
 s = socket(AF_INET, SOCK_DGRAM)
@@ -70,8 +73,6 @@ if s in ready_to_read:
    data = s.recvfrom(1024)
 
 ```
-
-Due to the BPF, which stands for BSD Packet Filter (NOT the Berkely Packet Filter, something else entirely) FreeBSD based systems are unable to read data from an interface at the ethernet level.  It's possible to sniff packets going by, but it's not possible to intercept them without using pcap or doing some serious low-level programming.
 
 I've had the best success so far with libdnet (rather than scapy or pypcap).  dnet stands for "dumb networking", and that's exactly what it is.  It's a stupid-simple api to access raw sockets and network interfaces.  `dnet.iface('en1').send('HI')` will literally write "HI" to the network interface (with no ethernet frame, no IP header, to TCP header, just 'hi').  In fact, you can use this to DDoS individual people, or your entire local network.  Just run it in a `while True:` loop.  The stream of meaningless malformed packets caused the wifi connection at hackerschool to slow to a dead stop within seconds.  The full code for this style of attack can be found in `bring_it_down.py`.
 
