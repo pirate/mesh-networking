@@ -18,4 +18,19 @@ if __name__ == "__main__":
     for node in nodes:
         node.start()
 
-    nodes[0].broadcast("HELLO")
+    try:
+        while True:
+            node = int(raw_input())
+            message = raw_input()
+            if message == "stop":
+                raise KeyboardInterrupt
+            else:
+                nodes[node].broadcast(message)
+            time.sleep(0.5)
+
+    except KeyboardInterrupt:
+        for node in nodes:
+            node.stop()
+        red.stop()
+        print("EXITING")
+        exit(0)

@@ -32,15 +32,18 @@ class HardLink:
 
     def send(self, indata):
         _1, ready_to_write, _2 = select.select([], [self.writeface], [], 1)     # needed for nonblocking sockets
-        if ready_to_write:
+        if self.writeface in ready_to_write and not self.writeface in _2:
             self.writeface.sendto(indata, ('255.255.255.255', self.port))
         else:
             print("NETWORK ERROR: WRITE FAILED")
 
     def recv(self):
         ready_to_read, _1, _2 = select.select([self.readface], [], [], 1)       # needed for nonblocking sockets
-        if ready_to_read:
-            return self.readface.recvfrom(1024)
+        if self.readface in ready_to_read and not self.readface in _2:
+            try:
+                return self.readface.recvfrom(1024)
+            except Exception:
+                return self.recv()                                               # just wait until it's available
         else:
             return ""
 
@@ -52,6 +55,7 @@ class HardLink:
 class VirtualLink:
     name = "vlan"
     data = []
+    port = ""
 
     def __init__(self, name="vlan"):
         self.name = name
@@ -64,9 +68,7 @@ class VirtualLink:
             return self.data.pop()
 
     def stop(self):
-        del(data)
         print("%s went down." % self.name)
-
 
 class BaseProtocol:
     listeners = {}
