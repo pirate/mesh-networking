@@ -36,7 +36,7 @@ The more existing pieces of the existing internet framework we can use, the easi
 * Ethernet
 * TCP
 * UDP
-* IMCP
+* ICMP
 
 MESHP packet structure:  
 -----------------------
