@@ -67,7 +67,7 @@ class Node(threading.Thread):
     mac_addr = "10:9a:dd:4b:e9:eb"
     ip_addr = "eeee:::::::1"
 
-    mesh_header = "MESHP(1.0,IPV6);MESHP:BEGIN;"
+    mesh_header = "MESHP(1.0,IPV6);MESHP:BEGIN;"            # beginnings of the MESHP protocol
     mesh_footer = "MESHP:END;"
 
     def __init__(self, network_links):
@@ -76,6 +76,7 @@ class Node(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+        """networking loop init, this gets called on node.start()"""
         while self._keep_listening:
             for link in self.interfaces:
                 packet = link.recv()
@@ -84,6 +85,7 @@ class Node(threading.Thread):
 
     @staticmethod
     def __genmacaddr__(len=6, sub_len=2):
+        """generate a non-guaranteed-unique mac address"""
         addr = []
         for _ in range(len):
             sub = ""
@@ -109,7 +111,7 @@ class Node(threading.Thread):
             for interface in links:
                 interface.send(self.mesh_header+packet+self.mesh_footer)
         except TypeError:
-            # if its only a single interface and not a list of interfaces
+            # fail gracefully if its only a single interface and not a list of interfaces
             links.push(self.mesh_header+packet+self.mesh_footer)
 
     def broadcast(self, packet):
