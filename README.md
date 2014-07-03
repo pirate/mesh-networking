@@ -37,7 +37,6 @@ The more existing pieces of the existing internet framework we can use, the easi
 * UDP
 * IMCP
 
-
 MESHP packet structure:  
 -----------------------
 + Ethernet frame (normal ethernet with MAC addressing)  
@@ -45,17 +44,6 @@ MESHP packet structure:
 + TCP Header (normal TCP)  
 + HTTP Header (normal HTTP)  
 + Data
-
-
-Links:
-------
-
-* http://dpk.io/blockchain
-* http://www.aaronsw.com/weblog/squarezooko
-* http://www.aaronsw.com/weblog/uncensor
-* https://squaretriangle.jottit.com/faq
-* http://libdnet.sourceforge.net/pydoc/public/frames.html
-* https://github.com/ewust
 
 Issues so far:
 --------------
@@ -89,7 +77,7 @@ I've had the best success so far with libdnet (rather than scapy or pypcap).  dn
 
 
 Cool Things:
-============
+------------
 As I mentioned above, you can allow multiple processes to connect to the same socket on the same port, and they all recieve a duplicate of every packet sent to that socket.  This is a simple socket option, but the implications are great.  Now we can have multiple clients listen on the same port, meaning to the clients this is not longer a port, it's simply a broadcast interface.  Every client gets every packet.  Every client processes every packet, and filters out everything it doesn't care about.  
 
 ```
@@ -169,3 +157,13 @@ nodes[0].broadcast("HELLO")
 ```
 
 Each node accepts a list of links that it is connected to.  All the nodes on one link work like a broadcast ethernet.  You can visualize it as a bunch of serves connected to eachother using ethernet cables colored red, green, blue, and purple.  Except the red link is actually a real link, allowing you to test your nodes over wifi, bluetooth, or any other hardware interface.  Green, blue, and purple allow you to simulate branches of the network on your local computer in order to test topology.  The cool part about this is that it allows you to simulate a complex 350 node network using a couple of laptops connected with an ethernet cable or wifi.  To view the code for the class Node, check out `node.py`.
+
+Links:
+------
+
+* http://dpk.io/blockchain
+* http://www.aaronsw.com/weblog/squarezooko
+* http://www.aaronsw.com/weblog/uncensor
+* https://squaretriangle.jottit.com/faq
+* http://libdnet.sourceforge.net/pydoc/public/frames.html
+* https://github.com/ewust
