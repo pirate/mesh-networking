@@ -4,6 +4,8 @@ Mesh Networking:
 The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
   
 The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to eachother  using real or virtual network interfaces.
+
+The second step is to agree on a common protocol for MESHP, and begin desiging the routing algorithm between multiple computers.  With a common spec to work off, we wont be limited to working in python.  We can write clients in go or C in order to test different sublties of the namecoin blockchain system and the meshp+mesharp routing stytems.
   
 
 Goals (Zooko's Triangle):
@@ -58,7 +60,7 @@ data = rawSocket.readto(1024)
 
    
 On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  
-It's difficult to read data from an interface at the ethernet level on FreeBSD-based systems.  It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them.
+It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them (correct me if I'm wrong here).
 
 We're forced by to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets send to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
 
