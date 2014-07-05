@@ -9,7 +9,40 @@ import select
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 random.seed(None)   # defaults to system time
 
-class HardLink:
+class BaseNetworkInterface(threading.Thread):
+    """
+    The minimum requirement for a network interface (or link as it's refferred to in this python program)
+
+    Thins to keep in mind:
+        - the link should have no knowledge of who is connected to it
+        - the link transmits everything to everyone, broadcast style
+            think of this as a group of computers conntected to eachother with wifi
+            the only way to transmit messages is to braodcast them to everyone and have
+            the receiving party filter out packets intended for other people.  In this
+            implementation, a link is simply an abstaction for a pipe that allows nodes
+            to communicate with eachother.  Two notes can share a single link, and then
+            it acts as a simple two-way connection
+    """
+
+    name = ""
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        pass
+
+    def __repr__(self):
+        return "<"+self.name+">"
+
+    def send(self):
+        pass
+    def recv(self):
+        pass
+    def stop(self):
+        passa
+
+class HardLink(BaseNetworkInterface):
     name = "en0"
     port = 3003
     readface = None
@@ -26,7 +59,8 @@ class HardLink:
         self.readface = socket(AF_INET, SOCK_DGRAM)
         self.readface.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
         self.readface.setblocking(0)
-        self.readface.bind(('',port))
+        self.readface.bind(('', int(self.port)))
+        BaseNetworkInterface.__init__(self)
 
         print("[%s] up." % self.name)
 
@@ -41,24 +75,26 @@ class HardLink:
         ready_to_read, _1, _2 = select.select([self.readface], [], [], 1)       # needed for nonblocking sockets
         if self.readface in ready_to_read and not self.readface in _2:
             try:
-                return self.readface.recvfrom(1024)
+                data = self.readface.recvfrom(1024)
             except Exception:
+                time.sleep(0.0005)
                 return self.recv()                                               # just wait until it's available
         else:
-            return ""
+            data = ""
+        return data
 
     def stop(self):
         # self.writeface = open('/dev/null', 'w') # not really necessary
         # self.readface = open('/dev/null', 'r') # not really necessary
         print("[%s] went down." % self.name)
 
-class VirtualLink:
+class VirtualLink(BaseNetworkInterface):
     name = "vlan"
     data = []
-    port = ""
 
     def __init__(self, name="vlan"):
         self.name = name
+        BaseNetworkInterface.__init__(self)
 
     def send(self, indata):
         self.data.append(indata)
@@ -106,7 +142,7 @@ class MeshProtocol(BaseProtocol):
         self.add_listener(pattern="ACK", callback=process_hello_response)
 
     def respond__hello(self, packet, *args):
-        self.broadcast("ACK;")
+        self.broadcast("ACK")
 
 class JSONMeshProtocol(BaseProtocol):
     def __init__():
@@ -130,14 +166,19 @@ class Node(threading.Thread, MeshProtocol):
     own_addr = "fasdfsdafsa"
     name = "node"
 
-    def __init__(self, network_links, name=None):
+    def __init__(self, network_links=None, name=None):
         self.mac_addr = self.__genaddr__(6,2)
         self.ip_addr = self.__genaddr__(8,4)
         if name is None:
             self.name = self.mac_addr
-        self.interfaces = network_links
+        else:
+            self.name = name
+        self.interfaces = network_links if not network_links is None else []
         MeshProtocol.__init__(self)
         threading.Thread.__init__(self)
+
+    def __repr__(self):
+        return "["+self.name+"]"
 
     def run(self):
         """networking loop init, this gets called on node.start()"""
@@ -162,8 +203,12 @@ class Node(threading.Thread, MeshProtocol):
             addr.append(sub)
         return ":".join(addr)
 
+    def add_interface(self, interface):
+        self.interfaces += [interface]
+
     def log(self, *args):
-        print("[%s] %s" % (self.name, " ".join([ str(x) for x in args])))
+        """stdout and stderr for the node"""
+        print("%s %s" % (self, " ".join([ str(x) for x in args])))
 
     def receive(self, packet):
         """receive and process data from an interface"""
@@ -178,7 +223,7 @@ class Node(threading.Thread, MeshProtocol):
 
     def send(self, packet, links=interfaces):
         """write packet to an interface or several interfaces"""
-        self.log("OUT", (packet, ("255.255.255.255", self.interfaces[0].port)))
+        self.log("OUT", (packet, ("255.255.255.255", ",".join([ i.name for i in self.interfaces ]))))
         try:
             for interface in links:
                 interface.send(packet)
@@ -191,8 +236,9 @@ class Node(threading.Thread, MeshProtocol):
         self.send(packet=packet, links=self.interfaces)
 
 if __name__ == "__main__":
-    link = HardLink("en1", 2020)
-    node = Node([link])
+    link = HardLink("en1", 3002)
+    link2 = VirtualLink("vlan1")
+    node = Node([link, link2])
     node.start()
 
     try:
@@ -209,3 +255,6 @@ if __name__ == "__main__":
         link.stop()
         print("EXITING")
         exit(0)
+
+
+# [c9:f6:24:4b:1e:6e] IN  ('{"id":"1f5ff4bc2416cf63f03bdb14242710be63da84c4","origin_peer":{"id":"B","address":"10.0.5.33:3003","connected_peers":[{"id":"A","address":"10.0.5.33:3001"},{"id":"C","address":"10.0.5.33:7666","connected_peers":[{"id":"D","address":"10.0.5.33:1111"}]}]},"destination_id":""}', ('10.0.5.33', 53934))
