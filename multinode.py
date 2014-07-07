@@ -84,7 +84,7 @@ def commandloop():
             node.stop()
         links[0].stop()
         print("EXITING CLEANLY")
-        exit(0)
+        raise SystemExit(0)
     except Exception as e:
         for node in nodes:
             node.stop()
@@ -107,7 +107,6 @@ if __name__ == "__main__":
     links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
     for link in links:
-        link.start()
         print link
 
     nodes = [ Node([], "n%s" % x) for x in range(num_nodes) ]
@@ -133,8 +132,8 @@ if __name__ == "__main__":
             
     print "Let there be life."
     for node in nodes:
-        print "%s:(%s)\n" % (node, node.interfaces),
         node.start()
+        print "%s:(%s)\n" % (node, node.interfaces),
     
     commandloop()
 
