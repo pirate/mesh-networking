@@ -7,85 +7,111 @@ import threading
 import time
 import select
 from Queue import Queue, Empty
-from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
+from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT, SOCK_RAW, IPPROTO_UDP, error
 random.seed(None)   # defaults to system time
 
-class VirtualLink(Queue):
-    """
-    The minimum requirement for a network interface (or link as it's referred to in this python program)
-
-    Thins to keep in mind:
-        - the link should have no knowledge of who is connected to it
-        - the link transmits everything to everyone, broadcast style
-            think of this as a group of computers conntected to eachother with wifi
-            the only way to transmit messages is to braodcast them to everyone and have
-            the receiving party filter out packets intended for other people.  In this
-            implementation, a link is simply an abstaction for a pipe that allows nodes
-            to communicate with eachother.  Two notes can share a single link, and then
-            it acts as a simple two-way connection
-    """
+class VirtualLink():
     name = ""
-    nodes = []
     keep_listening = True
-
-    def __init__(self, name="vlan", nodes=None):
-        Queue.__init__(self)
-        if not nodes is None:
-            self.nodes = nodes
-        self.name = name
+    inq = {}
 
     def __repr__(self):
         return "<"+self.name+">"
 
-    def register(self, node):
-        if not node in self.nodes:
-            self.nodes.append(node)
+    def __init__(self, iface="vlan", port=None):
+        self.name = iface
 
-    def deregister(self, node):
-        if node in self.nodes:
-            self.nodes.remove(node)
+    def register(self, node_mac_addr):
+        self.inq[str(node_mac_addr)] = Queue()
+
+    def deregister(self, node_mac_addr):
+        self.inq.pop(str(node_mac_addr))
+
+    def recv(self, node_mac_addr):
+        if self.keep_listening:
+            try:
+                return self.inq[str(node_mac_addr)].get(timeout=0)
+            except Empty:
+                return ""
 
     def send(self, data):
         if self.keep_listening:
-            self.put(data)
-
-class HardLink(threading.Thread):
-    port = 3003
-    readface = None
-    writeface = None
-    name = ""
-    nodes = ""
-    keep_listening = True
-
-    def __init__(self, iface="en1", port=3003, nodes=None):
-        threading.Thread.__init__(self)
-        self.port = port
-        self.writeface = socket(AF_INET, SOCK_DGRAM)
-        self.writeface.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        self.writeface.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        #self.writeface.setblocking(0)
-
-        self.readface = socket(AF_INET, SOCK_DGRAM)
-        self.readface.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
-        #self.readface.setblocking(1)
-        self.readface.bind(('', int(self.port)))
-        
-        print("[%s] up." % self.name)
-
-    def send(self, indata):
-        self.writeface.sendto(indata, ('255.255.255.255', self.port))
-
-    def run(self):
-        while self.keep_listening:
-            data = self.readface.recvfrom(1024)
-            self.distribute(data)
-        self.readface.close()
-        self.writeface.close()
+            for addr, nodeq in inq.iteritems():
+                nodeq.put(data)
 
     def stop(self):
         self.keep_listening = False
-        # self.writeface = open('/dev/null', 'w') # not really necessary
-        # self.readface = open('/dev/null', 'r') # not really necessary
+        print("[%s] went down." % self.name)
+
+
+class HardLink(threading.Thread):
+    """
+    for testing, all the nodes will connect to the hardware interface through this distributor
+    otherwise, we run into issues with 5 (or 500) nodes all trying to read one packet from the same hardware iface
+    """
+
+    port = 3003
+    interface = None
+    name = ""
+    keep_listening = True
+    inq = {}
+
+    def __repr__(self):
+        return "<"+self.name+">"
+
+    def __init__(self, iface="en1", port=3003):
+        threading.Thread.__init__(self)
+        self.port = port
+        self.name = iface+":"+str(port)
+
+        self.interface = socket(AF_INET, SOCK_DGRAM)
+        self.interface.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
+        self.interface.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.interface.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        self.interface.setblocking(0)
+        self.interface.bind(('',port))
+
+        print("[%s] up." % self.name)
+
+    def register(self, node_mac_addr):
+        self.inq[node_mac_addr] = Queue()
+
+    def deregister(self, node_mac_addr):
+        self.inq.pop(node_mac_addr)
+
+    def run(self):
+        while self.keep_listening:
+            try:
+                r, w, x = select.select([self.interface], [], [], 0.2)
+            except Exception:
+                # catch timeouts
+                r = []
+            for i in r:
+                data, addr = i.recvfrom(4096)
+                print addr[1], self.port
+                if addr[1] == self.port:
+                    for _, nodeq in self.inq.iteritems():
+                        nodeq.put((data, addr))
+                else:
+                    print "filtered"
+
+    def recv(self, node_mac_addr):
+        if self.keep_listening:
+            try:
+                return self.inq[node_mac_addr].get(timeout=0)
+            except Empty:
+                return ""
+
+    def send(self, data):
+        try:
+            self.interface.sendto(data, ('255.255.255.255', self.port))
+        except Exception as e:
+            print "sending failed at link level %s" % e
+            time.sleep(0.01)
+            self.send(data)
+
+    def stop(self):
+        self.keep_listening = False
         print("[%s] went down." % self.name)
 
 class BaseProtocol:
@@ -152,32 +178,27 @@ class Node(threading.Thread, MeshProtocol):
         threading.Thread.__init__(self)
         self.mac_addr = self.__genaddr__(6,2)
         self.ip_addr = self.__genaddr__(8,4)
-        self.interfaces = network_links if not network_links is None else []
-        if name is None:
-            self.setName(self.mac_addr)
-        else:
-            self.setName(name)
+        self.name = name if not name is None else self.mac_addr
+
+        for link in network_links:
+            self.add_interface(link)
 
     def __repr__(self):
         return "["+self.name+"]"
 
     def run(self):
         """networking loop init, this gets called on node.start()"""
-        self.incoming = Queue()
         while self.keep_listening:
             for iface in self.interfaces:
-                try:
-                    self.parse(iface.get(timeout=0))
-                    iface.task_done()
-                except Empty:
-                    pass
+                data = iface.recv(self.mac_addr)
+                if data:
+                    self.parse(data)
+        self.log("Stopped listening.")
 
     def stop(self):
         self.keep_listening = False
-        for interface in self.interfaces:
-            interface.deregister(self)
-        self.interfaces = []
-        print("\n[%s] went down." % self.name)
+        for i in self.interfaces:
+            i.deregister(self.mac_addr)
 
     @staticmethod
     def __genaddr__(len=6, sub_len=2):
@@ -191,16 +212,12 @@ class Node(threading.Thread, MeshProtocol):
         return ":".join(addr)
 
     def add_interface(self, interface):
+        interface.register(self.mac_addr)
         self.interfaces += [interface]
-        interface.register(self)
 
     def log(self, *args):
         """stdout and stderr for the node"""
         print("%s %s" % (self, " ".join([ str(x) for x in args])))
-
-    def receive(self, packet):
-        """receive and process data from an interface"""
-        self.incoming.put(packet)
         
     def parse(self, packet):
         self.log("IN ", packet)
@@ -227,18 +244,16 @@ class Node(threading.Thread, MeshProtocol):
         self.send(packet=packet, links=self.interfaces)
 
 if __name__ == "__main__":
-    link = HardLink("en1", 3002)
-    link2 = VirtualLink("vlan1")
-    node = Node([link, link2])
+    
+    link = HardLink("en1", 2003)
+    link.start()
+    node = Node([link])
     node.start()
 
     try:
         while True:
             message = raw_input()
-            if message == "stop":
-                raise KeyboardInterrupt
-            else:
-                node.broadcast(message)
+            node.broadcast(message)
             time.sleep(0.5)
 
     except KeyboardInterrupt:

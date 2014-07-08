@@ -15,11 +15,6 @@ def adj(node1, node2):
         return 0
 
 def linkmembers(nodes, link):
-    # members = []
-    # for node in nodes:
-    #     if link in node.interfaces:
-    #         members += [node]
-    # return members
     return [ node for node in nodes if link in node.interfaces ]
 
 def eigenvalue(nodes, node=None):
@@ -90,12 +85,13 @@ def commandloop():
             node.stop()
         links[0].stop()
         traceback.print_exc()
+        print("EXITING BADLY")
         raise SystemExit(1)
 
 def fmt(type, value, fallback=None):
     try:
         return type(value)
-    except ValueError:
+    except Exception:
         return fallback
 
 if __name__ == "__main__":
@@ -106,8 +102,6 @@ if __name__ == "__main__":
 
     links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
-    for link in links:
-        print link
 
     nodes = [ Node([], "n%s" % x) for x in range(num_nodes) ]
 
@@ -135,6 +129,14 @@ if __name__ == "__main__":
         node.start()
         print "%s:(%s)\n" % (node, node.interfaces),
     
+    nodes[0].add_interface(links[1])
+    nodes[1].add_interface(links[1])
+    nodes[1].add_interface(links[2])
+    nodes[2].add_interface(links[2])
+    nodes[2].add_interface(links[3])
+    nodes[3].add_interface(links[3])
+
+
     commandloop()
 
 
