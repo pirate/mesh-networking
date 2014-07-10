@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     nodes = [ Node([], "n%s" % x) for x in range(num_nodes) ]
 
-    desired_min_eigenvalue = 2
+    desired_min_eigenvalue = 1
 
     if randomize:
         for link in links:
@@ -64,16 +64,17 @@ if __name__ == "__main__":
                 node2 = random.choice(nodes)
             node2.add_interface(link)
         #and another sweep to catch all the unlinked nodes
-        #underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
-        #while underconnected_nodes:
-        #    print "Second pass."
-        #    for node in underconnected_nodes:
-        #        node.add_interface(random.choice(links))
-        #    underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
+        underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
+        while underconnected_nodes:
+            print "Second pass. Re-introducing %s antisocial nodes to the party." % len(underconnected_nodes)
+            for node in underconnected_nodes:
+                node.add_interface(random.choice(links))
+            underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
             
             
     print "Let there be life."
-    links[0].start()
+    for link in links:
+        link.start()
     for node in nodes:
         node.start()
         print "%s:(%s)\n" % (node, node.interfaces),
@@ -118,14 +119,18 @@ if __name__ == "__main__":
                 
             elif command[:1] == "":
                 # NODE COMMANDS
-                print "duh"
+                print "wut"
+            else:
+                print "Invalid command."
 
             time.sleep(0.5)
     except (KeyboardInterrupt, EOFError):
         try:
+            print "Stopping Nodes"
             for node in nodes:
                 node.stop()
                 node.join()
+            print "Stopping Links"
             for link in links:
                 link.stop()
                 link.join()
@@ -138,12 +143,14 @@ if __name__ == "__main__":
     except Exception as e:
         traceback.print_exc()
         try:
+            print "Stopping Nodes"
             for node in nodes:
                 node.stop()
-                #node.join()
+                node.join()
+            print "Stopping Links"
             for link in links:
                 link.stop()
-                #link.join()
+                link.join()
         except Exception as e2:
             traceback.print_exc()
         print("EXITING BADLY")

@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.1a"   
+version = "0.2a"   
 
 import random
 import threading
 import time
 import select
 from Queue import Queue, Empty
-from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT, SOCK_RAW, IPPROTO_UDP, error
+from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
+
+from protocols import MeshProtocol
+
 random.seed(None)   # defaults to system time
 
 class VirtualLink:
@@ -32,7 +35,9 @@ class VirtualLink:
     def recv(self, node_mac_addr):
         if self.keep_listening:
             try:
-                return self.inq[str(node_mac_addr)].get_nowait()
+                data = self.inq[str(node_mac_addr)].get(timeout=0)
+                print node_mac_addr, data
+                return data
             except (KeyError, Empty):
                 return ""
 
@@ -88,6 +93,10 @@ class HardLink(threading.Thread):
             self.inq.pop(str(node_mac_addr))
 
     def run(self):
+        print "starting"
+        for addr, _ in self.inq.iteritems():
+            print addr,
+        last_packet = ("","")
         while self.keep_listening:
             try:
                 r, w, x = select.select([self.interface], [], [], 0.2)
@@ -96,17 +105,18 @@ class HardLink(threading.Thread):
                 r = []
             for i in r:
                 data, addr = i.recvfrom(4096)
-                print addr[1], self.port
-                if addr[1] == self.port:
+                if addr[1] == self.port and (data, addr) != last_packet:
                     for _, nodeq in self.inq.iteritems():
                         nodeq.put((data, addr))
                 else:
-                    print "filtered"
+                    # packet got filtered
+                    pass
+                last_packet = (data, addr)
 
     def recv(self, node_mac_addr):
         if self.keep_listening:
             try:
-                return self.inq[str(node_mac_addr)].get_nowait()
+                return self.inq[str(node_mac_addr)].get(timeout=0)
             except (KeyError, Empty):
                 return ""
 
@@ -122,58 +132,6 @@ class HardLink(threading.Thread):
         self.keep_listening = False
         print("[%s] went down." % self.name)
         self.join()
-
-class BaseProtocol:
-    listeners = {}
-
-    def broadcast(*args, **kwargs):
-        pass
-    def send(*args, **kwargs):
-        pass
-    def receive(*args, **kwargs):
-        pass
-    def ignore(*args, **kwargs):
-        pass
-
-    def add_listener(self, pattern, callback):
-        """wait for packets matching a pattern, and feed them into their proper callback"""
-        self.listeners[pattern] = callback
-
-    def remove_listener(self, pattern):
-        """stop monitoring for packets that match a given pattern"""
-        self.listeners.pop(pattern)
-
-class MeshProtocol(BaseProtocol):
-    def __init__(self):
-        self.listeners["syn"] = self.respond__hello
-        self.listeners["SYN"] = self.respond__hello
-        self.listeners["PAN"] = self.respond__hello
-        self.listeners["KILL"] = self.stop
-        self.listeners["kill"] = self.stop
-
-    mesh_header = ";MESHPBEGIN;"            # beginnings of the MESHP protocol
-    mesh_footer = ";MESHPEND;"
-
-    def request__hello(self):
-        self.broadcast("SYN")
-        self.add_listener(pattern="ACK", callback=process_hello_response)
-
-    def respond__hello(self, packet, *args):
-        self.broadcast("ACK")
-
-class JSONMeshProtocol(BaseProtocol):
-    def __init__():
-        self.listeners["ACK"] = self.respond__hello
-        self.listeners["HELLO"] = self.respond__hello
-        self.listeners["PAN"] = self.respond__hello
-        self.listeners["KILL"] = self.stop
-
-    def request__hello(self):
-        self.broadcast("SYN")
-        self.add_listener(pattern="ACK", callback=process_hello_response)
-
-    def respond__hello(self, packet):
-        self.broadcast(";ACK %s;" % packet)
 
 class Node(threading.Thread, MeshProtocol):
     interfaces = []
@@ -203,7 +161,7 @@ class Node(threading.Thread, MeshProtocol):
             for iface in self.interfaces:
                 data = iface.recv(self.mac_addr)
                 if data:
-                    self.parse(data)
+                    self.recv(data)
         self.log("Stopped listening.")
 
     def stop(self):
@@ -231,15 +189,14 @@ class Node(threading.Thread, MeshProtocol):
         """stdout and stderr for the node"""
         print("%s %s" % (self, " ".join([ str(x) for x in args])))
         
-    def parse(self, packet):
+    def recv(self, packet):
         self.log("IN ", packet)
-        if self.own_addr not in packet:
-            for pattern, callback in self.listeners.iteritems():
-                if pattern in packet:
-                    try:
-                        callback(packet)
-                    except TypeError:
-                        callback()
+        for pattern, callback in self.listeners.iteritems():
+            if pattern in packet:
+                try:
+                    callback(packet)
+                except TypeError:
+                    callback()
 
     def send(self, packet, links=interfaces):
         """write packet to an interface or several interfaces"""
@@ -258,8 +215,8 @@ class Node(threading.Thread, MeshProtocol):
 if __name__ == "__main__":
     
     link = HardLink("en1", 2003)
-    link.start()
     node = Node([link])
+    link.start()
     node.start()
 
     try:

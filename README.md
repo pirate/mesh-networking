@@ -1,3 +1,15 @@
+Quickstart Guide:
+================
+
+```
+git clone https://github.com/pirate/mesh-networking
+cd mesh-networking
+python multinode.py
+```
+Or, if you want to test it over a real connection between two different machines (or on the same machine)
+run `python node.py` on each machine, or just run several in a few different terminal windows.
+
+
 Mesh Networking:
 ================
 
@@ -6,6 +18,8 @@ The Goal of this project is to re-implement several pieces of the network stack 
 The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to eachother  using real or virtual network interfaces.
 
 The second step is to agree on a common protocol for MESHP, and begin desiging the routing algorithm between multiple computers.  With a common spec to work off, we wont be limited to working in python.  We can write clients in go or C in order to test different sublties of the namecoin blockchain system and the meshp+mesharp routing stytems.
+
+For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style connection between two nodes.  The UDP header and ethernet frame are stripped on arrival.  In the future, I'd like to write a wrapper around [snabbswitch](https://github.com/SnabbCo/snabbswitch) that allows us to directly manipulate network interfaces.
   
 
 Goals (Zooko's Triangle):
@@ -38,8 +52,9 @@ The more existing pieces of the existing internet framework we can use, the easi
 * UDP
 * ICMP
 
-MESHP packet structure:  
------------------------
+Typical HTTP packet structure using MESHP:  
+------------------------------------------
+Our mesh protocol comes in and replaces the IP layer, leaving the other layers intact.  The only other manipulation required to get it working is access to the kernel's routing table, allowing us to route traffic in the right direction.
 
 + Ethernet frame (normal ethernet with MAC addressing)  
 + MESHP Header (instead of IP header)  
@@ -169,4 +184,5 @@ Links:
 * http://www.aaronsw.com/weblog/uncensor
 * https://squaretriangle.jottit.com/faq
 * http://libdnet.sourceforge.net/pydoc/public/frames.html
+* https://github.com/SnabbCo/snabbswitch
 * https://github.com/ewust
