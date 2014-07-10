@@ -10,7 +10,7 @@ from Queue import Queue, Empty
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT, SOCK_RAW, IPPROTO_UDP, error
 random.seed(None)   # defaults to system time
 
-class VirtualLink():
+class VirtualLink:
     name = ""
     keep_listening = True
     inq = {}
@@ -22,27 +22,33 @@ class VirtualLink():
         self.name = iface
 
     def register(self, node_mac_addr):
-        self.inq[str(node_mac_addr)] = Queue()
+        if str(node_mac_addr) not in self.inq:
+            self.inq[str(node_mac_addr)] = Queue()
 
     def deregister(self, node_mac_addr):
-        self.inq.pop(str(node_mac_addr))
+        if str(node_mac_addr) in self.inq:
+            self.inq.pop(str(node_mac_addr))
 
     def recv(self, node_mac_addr):
         if self.keep_listening:
             try:
-                return self.inq[str(node_mac_addr)].get(timeout=0)
-            except Empty:
+                return self.inq[str(node_mac_addr)].get_nowait()
+            except (KeyError, Empty):
                 return ""
 
     def send(self, data):
         if self.keep_listening:
-            for addr, nodeq in inq.iteritems():
+            for addr, nodeq in self.inq.iteritems():
                 nodeq.put(data)
 
     def stop(self):
         self.keep_listening = False
         print("[%s] went down." % self.name)
 
+    def join(self):
+        pass
+    def start(self):
+        pass
 
 class HardLink(threading.Thread):
     """
@@ -74,10 +80,12 @@ class HardLink(threading.Thread):
         print("[%s] up." % self.name)
 
     def register(self, node_mac_addr):
-        self.inq[node_mac_addr] = Queue()
+        if str(node_mac_addr) not in self.inq:
+            self.inq[str(node_mac_addr)] = Queue()
 
     def deregister(self, node_mac_addr):
-        self.inq.pop(node_mac_addr)
+        if str(node_mac_addr) in self.inq:
+            self.inq.pop(str(node_mac_addr))
 
     def run(self):
         while self.keep_listening:
@@ -98,8 +106,8 @@ class HardLink(threading.Thread):
     def recv(self, node_mac_addr):
         if self.keep_listening:
             try:
-                return self.inq[node_mac_addr].get(timeout=0)
-            except Empty:
+                return self.inq[str(node_mac_addr)].get_nowait()
+            except (KeyError, Empty):
                 return ""
 
     def send(self, data):
@@ -113,6 +121,7 @@ class HardLink(threading.Thread):
     def stop(self):
         self.keep_listening = False
         print("[%s] went down." % self.name)
+        self.join()
 
 class BaseProtocol:
     listeners = {}
@@ -178,7 +187,7 @@ class Node(threading.Thread, MeshProtocol):
         threading.Thread.__init__(self)
         self.mac_addr = self.__genaddr__(6,2)
         self.ip_addr = self.__genaddr__(8,4)
-        self.name = name if not name is None else self.mac_addr
+        self.name = name if name is not None else self.mac_addr
 
         for link in network_links:
             self.add_interface(link)
@@ -188,6 +197,8 @@ class Node(threading.Thread, MeshProtocol):
 
     def run(self):
         """networking loop init, this gets called on node.start()"""
+        for iface in self.interfaces:
+            self.add_interface(iface)
         while self.keep_listening:
             for iface in self.interfaces:
                 data = iface.recv(self.mac_addr)
@@ -213,7 +224,8 @@ class Node(threading.Thread, MeshProtocol):
 
     def add_interface(self, interface):
         interface.register(self.mac_addr)
-        self.interfaces += [interface]
+        if interface not in self.interfaces:
+            self.interfaces += [interface]
 
     def log(self, *args):
         """stdout and stderr for the node"""
@@ -256,7 +268,7 @@ if __name__ == "__main__":
             node.broadcast(message)
             time.sleep(0.5)
 
-    except KeyboardInterrupt:
+    except (EOFError, KeyboardInterrupt):
         node.stop()
         link.stop()
         node.join()

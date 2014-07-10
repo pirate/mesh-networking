@@ -36,58 +36,6 @@ def eigenvalue(nodes, node=None):
                 eigen += 1
         return eigen
 
-def commandloop():
-    dont_exit = True
-    try:
-        while dont_exit:
-            command = str(raw_input("[$]:"))
-
-            if command[:1] == "l":
-                # LINK COMMANDS
-                idx = int(command[1:])
-                if -1 < idx < len(links):
-                    link = links[idx]
-                    link_members = linkmembers(nodes, link)
-                    message = str(raw_input("%s(%s) %s:" % (link, len(link_members), link_members)))
-                    if message == "stop":
-                        link.stop()
-                    else:
-                        link.send(message)
-                else:
-                    print "Not a link."
-                
-            elif command[:1] == "n":
-                # NODE COMMANDS
-                idx = int(command[1:])
-                if -1 < idx < len(nodes):
-                    node = nodes[idx]
-                    message = str(raw_input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
-                    if message == "stop":
-                        node.stop()
-                    else:
-                        node.broadcast(message)
-                else:
-                    print "Not a node."
-                
-            elif command[:1] == "":
-                # NODE COMMANDS
-                print "duh"
-
-            time.sleep(0.5)
-    except KeyboardInterrupt:
-        for node in nodes:
-            node.stop()
-        links[0].stop()
-        print("EXITING CLEANLY")
-        raise SystemExit(0)
-    except Exception as e:
-        for node in nodes:
-            node.stop()
-        links[0].stop()
-        traceback.print_exc()
-        print("EXITING BADLY")
-        raise SystemExit(1)
-
 def fmt(type, value, fallback=None):
     try:
         return type(value)
@@ -116,28 +64,90 @@ if __name__ == "__main__":
                 node2 = random.choice(nodes)
             node2.add_interface(link)
         #and another sweep to catch all the unlinked nodes
-        underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
-        while underconnected_nodes:
-            print "Second pass."
-            for node in underconnected_nodes:
-                node.add_interface(random.choice(links))
-            underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
+        #underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
+        #while underconnected_nodes:
+        #    print "Second pass."
+        #    for node in underconnected_nodes:
+        #        node.add_interface(random.choice(links))
+        #    underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
             
             
     print "Let there be life."
+    links[0].start()
     for node in nodes:
         node.start()
         print "%s:(%s)\n" % (node, node.interfaces),
-    
-    nodes[0].add_interface(links[1])
-    nodes[1].add_interface(links[1])
-    nodes[1].add_interface(links[2])
-    nodes[2].add_interface(links[2])
-    nodes[2].add_interface(links[3])
-    nodes[3].add_interface(links[3])
 
+    dont_exit = True
+    try:
+        while dont_exit:
+            command = str(raw_input("[$]:"))
 
-    commandloop()
+            if command[:1] == "l":
+                # LINK COMMANDS
+                try:
+                    idx = int(command[1:])
+                except ValueError:
+                    idx = -1
+                if -1 < idx < len(links):
+                    link = links[idx]
+                    link_members = linkmembers(nodes, link)
+                    message = str(raw_input("%s(%s) %s:" % (link, len(link_members), link_members)))
+                    if message == "stop":
+                        link.stop()
+                    else:
+                        link.send(message)
+                else:
+                    print "Not a link."
+                
+            elif command[:1] == "n":
+                # NODE COMMANDS
+                try:
+                    idx = int(command[1:])
+                except ValueError:
+                    idx = -1 
+                if -1 < idx < len(nodes):
+                    node = nodes[idx]
+                    message = str(raw_input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
+                    if message == "stop":
+                        node.stop()
+                    else:
+                        node.broadcast(message)
+                else:
+                    print "Not a node."
+                
+            elif command[:1] == "":
+                # NODE COMMANDS
+                print "duh"
+
+            time.sleep(0.5)
+    except (KeyboardInterrupt, EOFError):
+        try:
+            for node in nodes:
+                node.stop()
+                node.join()
+            for link in links:
+                link.stop()
+                link.join()
+        except Exception as e:
+            traceback.print_exc()
+            print("EXITING BADLY")
+            raise SystemExit(1)
+        print("EXITING CLEANLY")
+        raise SystemExit(0)
+    except Exception as e:
+        traceback.print_exc()
+        try:
+            for node in nodes:
+                node.stop()
+                #node.join()
+            for link in links:
+                link.stop()
+                #link.join()
+        except Exception as e2:
+            traceback.print_exc()
+        print("EXITING BADLY")
+        raise SystemExit(1)
 
 
 
@@ -197,7 +207,7 @@ this is a graph of the cable's state over time (time increases going down)
 |,||^|
 |,||^|
 |,||^|
-|,||^|       meanwhile, there are no ---- because packets can be streames one after another, crammed in tight
+|,||^|       meanwhile, there are no --pauses-- because packets can be streamed one after another, crammed in tight
 |,||^|
 |,||^|
 |,||^|
