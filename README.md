@@ -1,7 +1,7 @@
 Quickstart Guide:
 ================
 
-```
+```bash
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
 # run several of these in different terminal windows, or on differnt computers, they will talk to each other over en1
@@ -9,7 +9,7 @@ python node.py
 ```
 Or, if you want to simulate a small network in one place, run:
 
-```
+```bash
 python multinode.py
 ```
 
