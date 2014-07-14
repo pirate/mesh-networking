@@ -77,7 +77,7 @@ data = rawSocket.readto(1024)
 On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  
 It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them (correct me if I'm wrong here).
 
-We're forced by to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets send to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
+We're forced to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets sent to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
 
 ```
 s = socket(AF_INET, SOCK_DGRAM)
