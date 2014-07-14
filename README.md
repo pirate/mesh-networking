@@ -4,7 +4,7 @@ Quickstart Guide:
 ```
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
-# run several of these in multiple terminal windows, they will talk to eachother
+# run several of these in different terminal windows, they will talk to each other
 python node.py
 ```
 Or, if you want to simulate a small network in one place, run:
