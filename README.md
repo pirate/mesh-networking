@@ -4,10 +4,14 @@ Quickstart Guide:
 ```
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
+# run several of these in multiple terminal windows, they will talk to eachother
+python node.py
+```
+Or, if you want to simulate a small network in one place, run:
+
+```
 python multinode.py
 ```
-Or, if you want to test it over a real connection between two different machines (or on the same machine)
-run `python node.py` on each machine, or just run several in a few different terminal windows.
 
 
 Mesh Networking:
