@@ -42,6 +42,14 @@ def fmt(type, value, fallback=None):
     except Exception:
         return fallback
 
+help_str = """Type a nodename or linkname to send messages.
+        e.g. [$]:n35
+             [n35]<en1> ∂5:hi
+        or
+             [$]:l5
+             <l5>(3) [n1,n4,n3]:whats up
+    WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
+
 if __name__ == "__main__":
     num_nodes = fmt(int, raw_input("How many nodes do you want? (26):"), 26)
     num_links = fmt(int, raw_input("How many links do you want? (40):"), 40)
@@ -53,7 +61,7 @@ if __name__ == "__main__":
 
     nodes = [ Node([], "n%s" % x) for x in range(num_nodes) ]
 
-    desired_min_eigenvalue = 1
+    desired_min_eigenvalue = 1  # must be less than the total number of nodes!!!
 
     if randomize:
         for link in links:
@@ -80,6 +88,8 @@ if __name__ == "__main__":
         print "%s:(%s)\n" % (node, node.interfaces),
 
     dont_exit = True
+
+    print help_str
     try:
         while dont_exit:
             command = str(raw_input("[$]:"))
@@ -117,11 +127,11 @@ if __name__ == "__main__":
                 else:
                     print "Not a node."
                 
-            elif command[:1] == "":
-                # NODE COMMANDS
-                print "wut"
+            elif command[:1] == "h":
+                print help_str
             else:
                 print "Invalid command."
+                print help_str
 
             time.sleep(0.5)
     except (KeyboardInterrupt, EOFError):

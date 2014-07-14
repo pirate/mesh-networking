@@ -18,11 +18,16 @@ class VirtualLink:
     keep_listening = True
     inq = {}
 
+    def log(self, *args):
+        """stdout and stderr for the node"""
+        print("%s %s" % (self, " ".join([ str(x) for x in args])))
+
     def __repr__(self):
         return "<"+self.name+">"
 
     def __init__(self, iface="vlan", port=None):
         self.name = iface
+        self.log("ready.")
 
     def register(self, node_mac_addr):
         if str(node_mac_addr) not in self.inq:
@@ -36,7 +41,6 @@ class VirtualLink:
         if self.keep_listening:
             try:
                 data = self.inq[str(node_mac_addr)].get(timeout=0)
-                print node_mac_addr, data
                 return data
             except (KeyError, Empty):
                 return ""
@@ -48,7 +52,7 @@ class VirtualLink:
 
     def stop(self):
         self.keep_listening = False
-        print("[%s] went down." % self.name)
+        self.log("went down.")
 
     def join(self):
         pass
@@ -67,6 +71,10 @@ class HardLink(threading.Thread):
     keep_listening = True
     inq = {}
 
+    def log(self, *args):
+        """stdout and stderr for the link"""
+        print("%s %s" % (self, " ".join([ str(x) for x in args])))
+
     def __repr__(self):
         return "<"+self.name+">"
 
@@ -82,7 +90,7 @@ class HardLink(threading.Thread):
         self.interface.setblocking(0)
         self.interface.bind(('',port))
 
-        print("[%s] up." % self.name)
+        self.log("starting...")
 
     def register(self, node_mac_addr):
         if str(node_mac_addr) not in self.inq:
@@ -93,9 +101,7 @@ class HardLink(threading.Thread):
             self.inq.pop(str(node_mac_addr))
 
     def run(self):
-        print "starting"
-        for addr, _ in self.inq.iteritems():
-            print addr,
+        self.log("ready.")
         last_packet = ("","")
         while self.keep_listening:
             try:
@@ -112,6 +118,7 @@ class HardLink(threading.Thread):
                     # packet got filtered
                     pass
                 last_packet = (data, addr)
+            time.sleep(0.01)
 
     def recv(self, node_mac_addr):
         if self.keep_listening:
@@ -124,13 +131,13 @@ class HardLink(threading.Thread):
         try:
             self.interface.sendto(data, ('255.255.255.255', self.port))
         except Exception as e:
-            print "sending failed at link level %s" % e
+            self.log("sending failed at link level %s" % e)
             time.sleep(0.01)
             self.send(data)
 
     def stop(self):
         self.keep_listening = False
-        print("[%s] went down." % self.name)
+        self.log("went down.")
         self.join()
 
 class Node(threading.Thread, MeshProtocol):
@@ -162,6 +169,7 @@ class Node(threading.Thread, MeshProtocol):
                 data = iface.recv(self.mac_addr)
                 if data:
                     self.recv(data)
+            time.sleep(0.01)
         self.log("Stopped listening.")
 
     def stop(self):
@@ -221,7 +229,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            message = raw_input()
+            message = raw_input(">")
             node.broadcast(message)
             time.sleep(0.5)
 
