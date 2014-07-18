@@ -25,6 +25,26 @@ The second step is to agree on a common protocol for MESHP, and begin desiging t
 
 For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style connection between two nodes.  The UDP header and ethernet frame are stripped on arrival.  In the future, I'd like to write a wrapper around [snabbswitch](https://github.com/SnabbCo/snabbswitch) that allows us to directly manipulate network interfaces.
   
+##Notes
+
+* TUN/TAP tun0 beef:0/10
+* create new loopback interfase lo2 IPV6 only, address beef::0
+* SOCKS5 > over tun0
+* meshpd attached to tun0, when user wants to send a packet to a mesh node, he sends it to the mesh IPV6 addr on tun0, and meshpd will pick it up, read the header, and route it accordingly over real en0, bt0, vlan0, etc.
+
+  * local->tun0:localhost packets to lo2:beef::0 so you can ping yourself
+  * local->tun0:broadcast packets go out to all mesh nodes in the same zone, and back to lo2
+  * local->tun0:multicast: packets to individual hosts are routed based on zone mesh routes
+
+  * tun0:broadcast->local: packets go to lo2:beef::0 (which userland programs can bind to, like httpd, ftp, etc.)
+  * tun0:multicast->local: packets go to lo2:beef::0
+  * tun0:localhost->local: packets go to lo2:beef::0
+
+The source and desination address information is stored in the MESHP header, and is read by meshpd whenever they hits tun0.
+
+> TUN (namely network TUNnel) simulates a network layer device and it operates with layer 3 packets like IP packets. TAP (namely network tap) simulates a link layer device and it operates with layer 2 packets like Ethernet frames. TUN is used with routing, while TAP is used for creating a network bridge.  
+Packets sent by an operating system via a TUN/TAP device are delivered to a user-space program which attaches itself to the device. A user-space program may also pass packets into a TUN/TAP device. In this case TUN/TAP device delivers (or "injects") these packets to the operating-system network stack thus emulating their reception from an external source.
+
 
 Goals (Zooko's Triangle):
 -------------------------
