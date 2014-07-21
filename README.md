@@ -18,13 +18,13 @@ Mesh Networking:
 ================
 
 The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
-  
-The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to eachother  using real or virtual network interfaces.
 
-The second step is to agree on a common protocol for MESHP, and begin desiging the routing algorithm between multiple computers.  With a common spec to work off, we wont be limited to working in python.  We can write clients in go or C in order to test different sublties of the namecoin blockchain system and the meshp+mesharp routing stytems.
+The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to each other using real or virtual network interfaces.
+
+The second step is to agree on a common protocol for MESHP, and begin designing the routing algorithm between multiple computers.  With a common spec to work off, we wont be limited to working in python.  We can write clients in go or C in order to test different subtleties of the namecoin blockchain system and the meshp+mesharp routing systems.
 
 For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style connection between two nodes.  The UDP header and ethernet frame are stripped on arrival.  In the future, I'd like to write a wrapper around [snabbswitch](https://github.com/SnabbCo/snabbswitch) that allows us to directly manipulate network interfaces.
-  
+
 ##Notes
 
 * TUN/TAP tun0 beef:0/10
@@ -40,7 +40,7 @@ For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style
   * tun0:multicast->local: packets go to lo2:beef::0
   * tun0:localhost->local: packets go to lo2:beef::0
 
-The source and desination address information is stored in the MESHP header, and is read by meshpd whenever they hits tun0.
+The source and desination address information is stored in the MESHP header, and is read by meshpd whenever they hit tun0.
 
 > TUN (namely network TUNnel) simulates a network layer device and it operates with layer 3 packets like IP packets. TAP (namely network tap) simulates a link layer device and it operates with layer 2 packets like Ethernet frames. TUN is used with routing, while TAP is used for creating a network bridge.  
 Packets sent by an operating system via a TUN/TAP device are delivered to a user-space program which attaches itself to the device. A user-space program may also pass packets into a TUN/TAP device. In this case TUN/TAP device delivers (or "injects") these packets to the operating-system network stack thus emulating their reception from an external source.
@@ -57,7 +57,7 @@ Brand new tech:
 ---------------
 * MESHP (replaces the IP layer, extends a custom baked IPv6 implementation)
 * MESHDNS (namecoin style)
-* MESHARP (needs major changes to prevent DDoSing the endtire mesh when new nodes join)
+* MESHARP (needs major changes to prevent DDoSing the entire mesh when new nodes join)
 * MESHTRACEROUTE (shows more detail about the mesh hops taken to get to a host)
 
 Technologies to reimplement:
@@ -97,7 +97,7 @@ rawSocket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003
 data = rawSocket.readto(1024)
 ```
 
-   
+
 On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  
 It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them (correct me if I'm wrong here).
 
