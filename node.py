@@ -2,6 +2,7 @@
 # MIT Liscence : Nick Sweeting
 version = "0.2a"   
 
+import sys
 import random
 import threading
 import time
@@ -221,8 +222,10 @@ class Node(threading.Thread, MeshProtocol):
         self.send(packet=packet, links=self.interfaces)
 
 if __name__ == "__main__":
-    
-    link = HardLink("en1", 2003)
+    interface = "en1"
+    if(len(sys.argv) > 1):
+      interface = sys.argv[1]
+    link = HardLink(interface, 2003)
     node = Node([link])
     link.start()
     node.start()
