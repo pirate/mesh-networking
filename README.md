@@ -104,7 +104,7 @@ It's possible to sniff packets going by using something like pcap or the BPF/tcp
 
 We're forced to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets sent to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
 
-```
+```python
 s = socket(AF_INET, SOCK_DGRAM)
 s.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
 s.setblocking(0)
@@ -131,7 +131,7 @@ datagram_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)
 
 Another cool thing is that you can create a virtual, virtual network interface that behaves like a real one in python.  The setup below allows us to write and recieve broadcast UDP packets to any interface.  In order to simulate our mesh networking protocol (which is at the IP layer, one level below UDP), we are going to simply cut off the IP, and UDP headers of every packet we recieve.  Since UDP allows us to do broadcast networking, we can simulate being at the ethernet level on the same hardware link as another computer by pretending we arent getting any help with routing from the system through IP and UDP.  We can then tack on our own routing protocol, I'm calling it "MESHP" for lack of a better name.  MESHP extends IPv6 and allows for mesh-style adhoc packet routing, but I'll save that for another time.  Below is the code for creating hard and virtual interfaces.
 
-```
+```python
 class HardLink:
     name = "en"
     readface = None
@@ -181,7 +181,7 @@ class VirtualLink:
 
 Since these two Link types both have the same accessor methods, we can connect our nodes up to real interfaces or fake ones, and see how they behave.  Nodes connected to both a real and a virtual can pass packets between the two, acting as a bridge for all the other nodes.
 
-```
+```python
 red, green, blue, purple = HardLink("en1"), VirtualLink(), VirtualLink(), VirtualLink()
 
 nodes = [Node([red, green, blue]), 
