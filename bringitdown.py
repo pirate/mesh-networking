@@ -1,4 +1,13 @@
-import dnet # brew install libdnet; then download the python bindings from http://libdnet.sourceforge.net/
+# brew install libdnet
+# wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
+# tar xfz libdnet-1.12.tgz
+# ./configure
+# make
+# sudo make install
+# cd python
+# python setup.py install
+
+import dnet
 
 def bring_it_down(iface="en1", spam_packet='HOST:all|GET:spam'):
     datalink = dnet.eth(iface)
