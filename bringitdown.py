@@ -1,4 +1,4 @@
-import dnet
+import dnet # brew install libdnet
 
 def bring_it_down(iface="en1", spam_packet='HOST:all|GET:spam'):
     datalink = dnet.eth(iface)
