@@ -1,5 +1,6 @@
+import dnet
+
 def bring_it_down(iface="en1", spam_packet='HOST:all|GET:spam'):
-    import dnet
     datalink = dnet.eth(iface)
     h = datalink.get().encode('hex_codec')
     mac = ':'.join([h[i:i+2] for i in range(0,len(h),2)])
