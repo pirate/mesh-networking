@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.2a"   
+version = "0.3"
 
 import sys
 import random
 import threading
 import time
 import select
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 
 from protocols import MeshProtocol
@@ -21,7 +21,7 @@ class VirtualLink:
 
     def log(self, *args):
         """stdout and stderr for the node"""
-        print("%s %s" % (self, " ".join([ str(x) for x in args])))
+        print("%s %s" % (self, " ".join([str(x) for x in args])))
 
     def __repr__(self):
         return "<"+self.name+">"
@@ -48,7 +48,7 @@ class VirtualLink:
 
     def send(self, data):
         if self.keep_listening:
-            for addr, nodeq in self.inq.iteritems():
+            for addr, nodeq in self.inq.items():
                 nodeq.put(data)
 
     def stop(self):
@@ -57,6 +57,7 @@ class VirtualLink:
 
     def join(self):
         pass
+
     def start(self):
         pass
 
@@ -74,7 +75,7 @@ class HardLink(threading.Thread):
 
     def log(self, *args):
         """stdout and stderr for the link"""
-        print("%s %s" % (self, " ".join([ str(x) for x in args])))
+        print("%s %s" % (self, " ".join([str(x) for x in args])))
 
     def __repr__(self):
         return "<"+self.name+">"
@@ -89,7 +90,7 @@ class HardLink(threading.Thread):
         self.interface.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.interface.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         self.interface.setblocking(0)
-        self.interface.bind(('',port))
+        self.interface.bind(('', port))
 
         self.log("starting...")
 
@@ -103,7 +104,7 @@ class HardLink(threading.Thread):
 
     def run(self):
         self.log("ready.")
-        last_packet = ("","")
+        last_packet = ("", "")
         while self.keep_listening:
             try:
                 r, w, x = select.select([self.interface], [], [], 0.2)
@@ -113,7 +114,7 @@ class HardLink(threading.Thread):
             for i in r:
                 data, addr = i.recvfrom(4096)
                 if addr[1] == self.port and (data, addr) != last_packet:
-                    for _, nodeq in self.inq.iteritems():
+                    for _, nodeq in self.inq.items():
                         nodeq.put((data, addr))
                 else:
                     # packet got filtered
@@ -144,15 +145,16 @@ class HardLink(threading.Thread):
 class Node(threading.Thread, MeshProtocol):
     interfaces = []
     keep_listening = True
-    mac_addr = "10:9a:dd:4b:e9:eb"
+    mac_addr = "de:ad:be:ef:de:ad"
     ip_addr = "eeee:::::::1"
     own_addr = "fasdfsdafsa"
 
     def __init__(self, network_links=None, name=None):
+        network_links = [] if network_links is None else network_links
         MeshProtocol.__init__(self)
         threading.Thread.__init__(self)
-        self.mac_addr = self.__genaddr__(6,2)
-        self.ip_addr = self.__genaddr__(8,4)
+        self.mac_addr = self.__genaddr__(6, 2)
+        self.ip_addr = self.__genaddr__(8, 4)
         self.name = name if name is not None else self.mac_addr
 
         for link in network_links:
@@ -196,11 +198,11 @@ class Node(threading.Thread, MeshProtocol):
 
     def log(self, *args):
         """stdout and stderr for the node"""
-        print("%s %s" % (self, " ".join([ str(x) for x in args])))
+        print("%s %s" % (self, " ".join([str(x) for x in args])))
         
     def recv(self, packet):
         self.log("IN ", packet)
-        for pattern, callback in self.listeners.iteritems():
+        for pattern, callback in self.listeners.items():
             if pattern in packet:
                 try:
                     callback(packet)
@@ -209,7 +211,7 @@ class Node(threading.Thread, MeshProtocol):
 
     def send(self, packet, links=interfaces):
         """write packet to an interface or several interfaces"""
-        self.log("OUT", (packet, ("255.255.255.255", ",".join([ i.name for i in self.interfaces ]))))
+        self.log("OUT", (packet, ("255.255.255.255", ",".join([i.name for i in self.interfaces]))))
         try:
             for interface in links:
                 interface.send(packet)
@@ -224,7 +226,7 @@ class Node(threading.Thread, MeshProtocol):
 if __name__ == "__main__":
     interface = "en1"
     if(len(sys.argv) > 1):
-      interface = sys.argv[1]
+        interface = sys.argv[1]
     link = HardLink(interface, 2003)
     node = Node([link])
     link.start()
@@ -232,7 +234,7 @@ if __name__ == "__main__":
 
     try:
         while True:
-            message = raw_input(">")
+            message = input(">")
             node.broadcast(message)
             time.sleep(0.5)
 

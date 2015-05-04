@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.2" 
-import traceback  
+version = "0.3"
+import traceback
 import time
 import random
 
 from node import VirtualLink, HardLink, Node
+
+random.seed(None)
 
 def adj(node1, node2):
     """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
     if node1 != node2 and set(node1.interfaces).intersection(set(node2.interfaces)):
         return 1
     else:
+        # Not implemented yet, graphsearch to find min hops between two nodes
         return 0
 
 def linkmembers(nodes, link):
@@ -23,24 +26,21 @@ def eigenvalue(nodes, node=None):
     if no node is given, return the minimum eigenvalue in the whole network
     """
     if node is None:
-        min_eigen = 100
-        for node in nodes:
-            eigen = eigenvalue(nodes, node)
-            if eigen < min_eigen:
-                min_eigen = eigen
-        return min_eigen
+        return sorted([eigenvalue(nodes, n) for n in nodes])[0] # return lowest eigenvalue
     else:
-        eigen = 0
-        for node2 in nodes:
-            if adj(node, node2):
-                eigen += 1
-        return eigen
+        return len([1 for n in nodes if adj(node, n)])
 
 def fmt(type, value, fallback=None):
     try:
         return type(value)
     except Exception:
         return fallback
+
+def even_eigen_randomize(nodes, links, min_eigen=1):
+    print("Introducing %s antisocial nodes to the party." % len(nodes))
+    for node in nodes:
+        while len(node.interfaces) < desired_min_eigenvalue:
+            node.add_interface(random.choice(links))
 
 help_str = """Type a nodename or linkname to send messages.
         e.g. [$]:n35
@@ -51,48 +51,34 @@ help_str = """Type a nodename or linkname to send messages.
     WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
 
 if __name__ == "__main__":
-    num_nodes = fmt(int, raw_input("How many nodes do you want? (26):"), 26)
-    num_links = fmt(int, raw_input("How many links do you want? (40):"), 40)
-    bridge    = fmt(int, raw_input("Link to wifi too, if so, on what port? (0 for no/#):"), False)
-    randomize = False if str(raw_input("Randomize links, or play God? (r/g)"))[:1].lower() == "g" else True                 # chose entropy or order
+    num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
+    num_links = fmt(int, input("How many links do you want? (40):"), 40)
+    bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#):"), False)
+    randomize = not str(input("Randomize links, or play God? (r/g)"))[:1].lower() == "g"    # chose entropy or order
 
     links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
 
-    nodes = [ Node([], "n%s" % x) for x in range(num_nodes) ]
+    nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
 
     desired_min_eigenvalue = 1  # must be less than the total number of nodes!!!
 
     if randomize:
-        for link in links:
-            node1 = random.choice(nodes)
-            node1.add_interface(link)
-            node2 = random.choice(nodes)
-            while node2 == node1 and len(nodes) > 1:
-                node2 = random.choice(nodes)
-            node2.add_interface(link)
-        #and another sweep to catch all the unlinked nodes
-        underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
-        while underconnected_nodes:
-            print "Second pass. Re-introducing %s antisocial nodes to the party." % len(underconnected_nodes)
-            for node in underconnected_nodes:
-                node.add_interface(random.choice(links))
-            underconnected_nodes = filter(lambda x: True if len(x.interfaces) < desired_min_eigenvalue else False, nodes)
+        even_eigen_randomize(nodes, links, desired_min_eigenvalue)
             
-            
-    print "Let there be life."
+    print("Let there be life.")
     for link in links:
         link.start()
     for node in nodes:
         node.start()
-        print "%s:(%s)\n" % (node, node.interfaces),
+        print("%s:%s" % (node, node.interfaces))
 
     dont_exit = True
 
-    print help_str
+    print(help_str)
     try:
         while dont_exit:
-            command = str(raw_input("[$]:"))
+            command = str(input("[$]:"))
 
             if command[:1] == "l":
                 # LINK COMMANDS
@@ -103,44 +89,44 @@ if __name__ == "__main__":
                 if -1 < idx < len(links):
                     link = links[idx]
                     link_members = linkmembers(nodes, link)
-                    message = str(raw_input("%s(%s) %s:" % (link, len(link_members), link_members)))
+                    message = str(input("%s(%s) %s:" % (link, len(link_members), link_members)))
                     if message == "stop":
                         link.stop()
                     else:
                         link.send(message)
                 else:
-                    print "Not a link."
+                    print("Not a link.")
                 
             elif command[:1] == "n":
                 # NODE COMMANDS
                 try:
                     idx = int(command[1:])
                 except ValueError:
-                    idx = -1 
+                    idx = -1
                 if -1 < idx < len(nodes):
                     node = nodes[idx]
-                    message = str(raw_input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
+                    message = str(input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
                     if message == "stop":
                         node.stop()
                     else:
                         node.broadcast(message)
                 else:
-                    print "Not a node."
+                    print("Not a node.")
                 
             elif command[:1] == "h":
-                print help_str
+                print(help_str)
             else:
-                print "Invalid command."
-                print help_str
+                print("Invalid command.")
+                print(help_str)
 
             time.sleep(0.5)
     except (KeyboardInterrupt, EOFError):
         try:
-            print "Stopping Nodes"
+            print("Stopping Nodes")
             for node in nodes:
                 node.stop()
                 node.join()
-            print "Stopping Links"
+            print("Stopping Links")
             for link in links:
                 link.stop()
                 link.join()
@@ -153,11 +139,11 @@ if __name__ == "__main__":
     except Exception as e:
         traceback.print_exc()
         try:
-            print "Stopping Nodes"
+            print("Stopping Nodes")
             for node in nodes:
                 node.stop()
                 node.join()
-            print "Stopping Links"
+            print("Stopping Links")
             for link in links:
                 link.stop()
                 link.join()
@@ -193,7 +179,7 @@ if __name__ == "__main__":
 
 
 two cables, each cable can transmit one packet per tick
-in order to switch transmission directions there is a 
+in order to switch transmission directions there is a
 small latency between ticks.
 
 this is a graph of the cable's state over time (time increases going down)
