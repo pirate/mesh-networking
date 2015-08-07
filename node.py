@@ -7,7 +7,7 @@ import random
 import threading
 import time
 import select
-from queue import Queue, Empty
+from Queue import Queue, Empty # for whatever reason python2.7.9 throws up an error if the 'Q' is lowercase
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 
 from protocols import MeshProtocol
