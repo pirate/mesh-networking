@@ -6,7 +6,7 @@ git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
 # run several of these in different terminal windows, or on different computers
 # by default, they will talk to each other over en1
-python node.py [interface]
+python3 node.py [interface]
 ```
 Or, if you want to simulate a small network in one place, run:
 
