@@ -187,7 +187,7 @@ class Node(threading.Thread, MeshProtocol):
         for _ in range(len):
             sub = ""
             for _ in range(sub_len):
-                sub += random.choice("0123456789abccef")
+                sub += random.choice("0123456789abcdef")
             addr.append(sub)
         return ":".join(addr)
 
