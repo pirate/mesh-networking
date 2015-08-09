@@ -39,7 +39,7 @@ def fmt(type, value, fallback=None):
 def even_eigen_randomize(nodes, links, min_eigen=1):
     print("Introducing %s antisocial nodes to the party." % len(nodes))
     for node in nodes:
-        while len(node.interfaces) < desired_min_eigenvalue:
+        while len(node.interfaces) < min_eigen:
             node.add_interface(random.choice(links))
 
 help_str = """Type a nodename or linkname to send messages.
