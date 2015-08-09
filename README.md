@@ -11,7 +11,7 @@ python node.py [interface]
 Or, if you want to simulate a small network in one place, run:
 
 ```bash
-python multinode.py
+python3 multinode.py
 ```
 
 
