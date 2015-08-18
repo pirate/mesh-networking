@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.3"
+# MIT Liscence : Serg Kondrashov
+from oauthlib.uri_validate import path
+version = "0.4"
 import traceback
 import time
 import random
@@ -17,6 +19,45 @@ def adj(node1, node2):
         # Not implemented yet, graphsearch to find min hops between two nodes
         return 0
 
+def get_neighbors(nodes, node):
+    links = node.interfaces
+    neigbors = []
+    for link in links:
+        neigbors += linkmembers(nodes, link)
+    while True:
+        try:
+            neigbors.remove(node)
+        except:
+            break
+    return neigbors
+
+def get_cummon_link(node1, node2):
+    return [list(set(node1.interfaces).intersection(set(node2.interfaces))), 1]   
+
+def min_distance(graph):
+    min_value = 1000000
+    min_node = ""
+    for i in graph:
+        if graph[i] < min_value:
+            min_node = i
+    return min_node
+
+def dijkstra(nodes, start_node):
+    visited = {}
+    to_visit = {start_node:0}
+    path = {start_node:[start_node]}
+    while(to_visit):
+        v = min_distance(to_visit)
+        visited[v] = to_visit[v]
+        del to_visit[v]
+        for w in get_neighbors(nodes, v):
+            if w not in visited:
+                vwLength = visited[v] + get_cummon_link(v,w)[1]
+                if (w not in to_visit) or (vwLength < to_visit[w]):
+                    to_visit[w] = vwLength
+                    path[w] = path[v] + [w]
+    return visited, path
+    
 def linkmembers(nodes, link):
     return [ node for node in nodes if link in node.interfaces ]
 
@@ -39,8 +80,11 @@ def fmt(type, value, fallback=None):
 def even_eigen_randomize(nodes, links, min_eigen=1):
     print("Introducing %s antisocial nodes to the party." % len(nodes))
     for node in nodes:
-        while len(node.interfaces) < min_eigen:
+        while len(node.interfaces) < min_eigen:#desired_min_eigenvalue:
             node.add_interface(random.choice(links))
+    
+def test_foo(nodes, links, min_eigen=1):
+    nodes[0].interfaces += [random.choice(links)]    
 
 help_str = """Type a nodename or linkname to send messages.
         e.g. [$]:n35
@@ -51,17 +95,19 @@ help_str = """Type a nodename or linkname to send messages.
     WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
 
 if __name__ == "__main__":
-    num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
-    num_links = fmt(int, input("How many links do you want? (40):"), 40)
-    bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#):"), False)
-    randomize = not str(input("Randomize links, or play God? (r/g)"))[:1].lower() == "g"    # chose entropy or order
+    num_nodes = fmt(int, input("How many nodes do you want? [5]:"), 5)
+    num_links = fmt(int, input("How many links do you want? [10]:"), 10)
+    bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
+    randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"    # chose entropy or order
 
     links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
 
-    nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
+    nodes = [Node(None, "n%s" % x) for x in range(num_nodes)]
+        
+    print("{0}.interfaces is {1}.interfaces = {2}".format(nodes[0], nodes[-1], nodes[0].interfaces is nodes[-1].interfaces))
 
-    desired_min_eigenvalue = 1  # must be less than the total number of nodes!!!
+    desired_min_eigenvalue = 5  # must be less than the total number of nodes!!!
 
     if randomize:
         even_eigen_randomize(nodes, links, desired_min_eigenvalue)
