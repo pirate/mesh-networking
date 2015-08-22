@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # MIT Liscence : Serg Kondrashov
-# ver : 0.1
+# ver : 0.11
+
 import cmd
 from multinode import *
 from pdb import Restart
@@ -11,7 +12,7 @@ class Cli(cmd.Cmd):
         print("\n\n" + '='*80)
         cmd.Cmd.__init__(self)
         self.prompt = "> "
-        self.intro = """type 'help' to show availible commands"""
+        self.intro = """type 'help' to show availible commands\ntype 'list' to view all nodes with links"""
         self.doc_header = "Availible commands (type 'help _command_' to get command help):"
         
         if not default:
@@ -19,21 +20,25 @@ class Cli(cmd.Cmd):
             num_links = fmt(int, input("How many links do you want? [10]:"), 10)
             bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
             randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"
+            direct_links = not str(input("One link only for 2 nodes? (y/n)[y]"))[:1].lower() == "n"
+            min_links = fmt(int, input("What is minimum of links in one node? [1]:"), 1)
+            max_links = fmt(int, input("What is maximum of links in one node? [5]:"), 5)
         else:
             num_nodes = 5
             num_links = 10
             bridge = False
             randomize = True
+            direct_links = True
+            min_links = 1
+            max_links = 5
 
         self.links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
         self.links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
 
         self.nodes = [Node(None, "n%s" % x) for x in range(num_nodes)]
         
-        desired_min_eigenvalue = 2  # must be less than the total number of nodes!!!
-    
         if randomize:
-            even_eigen_randomize(self.nodes, self.links, desired_min_eigenvalue)
+            even_eigen_randomize(self.nodes, self.links, direct_links, min_links, max_links)
             
         for link in self.links:
             link.start()
@@ -41,10 +46,30 @@ class Cli(cmd.Cmd):
             node.start()
             #print("%s:%s" % (node, node.interfaces))
         print("[info]\tAll nodes and links are started")
-        
+     
+    def do_get_link(self, args):
+        args = self.parseline(args)
+        try:
+            node0 = int(args[0][1:])
+            node1 = int(args[1][1:])
+            if node0 != node1 and -1 < node0 < len(self.nodes) and -1 < node1 < len(self.nodes):
+                node0 = self.nodes[node0]
+                node1 = self.nodes[node1]
+                print('link = ', get_cummon_link(node0, node1))
+            elif node0 == node1:
+                print('same node')
+            elif -1 < node0 < len(self.nodes):
+                print('n%s is not a node!' % node1)
+            elif -1 < node1 < len(self.nodes):
+                print('n%s is not a node!' % node0)
+            else:
+                print('error1')
+        except:
+            print('error2')       
+                
     def do_n(self, args):
         try:
-            idx = int(args[0])
+            idx = int(args[0:])
         except ValueError:
             idx = -1
         if -1 < idx < len(self.nodes):
@@ -66,7 +91,8 @@ class Cli(cmd.Cmd):
     type '..' to cancel
     or type text to send to the link"""
         try:
-            idx = int(args[0])
+            idx = int(args[0:])
+            print(idx)
         except ValueError:
             idx = -1
         if -1 < idx < len(self.links):
@@ -75,6 +101,8 @@ class Cli(cmd.Cmd):
             message = str(input("%s(%s) %s>" % (link, len(link_members), link_members)))
             if message == "stop":
                 link.stop()
+            elif message == "start":
+                link.start()
             elif message == "..":
                 pass
             else:
@@ -90,7 +118,7 @@ class Cli(cmd.Cmd):
         self.do_l(self, args)
              
     def do_list(self, args):
-        """show availible nodes with it's links"""
+        """show available nodes with it's links"""
         print('current nodes:')
         for n in self.nodes:
             print('{0} : {1}'.format(n, n.interfaces))
@@ -114,6 +142,8 @@ class Cli(cmd.Cmd):
         raise SystemExit(0)     
     
     def do_get_neighbors(self, args):
+        """getting paths to all nodes using Dijkstra algorithm\njust type:
+        get_neighbors n0\nand you'll get all possible path to neighbors of [n0]"""
         if self.get_node(args):
             start_node = self.get_node(args)
             wieght, path = dijkstra(self.nodes, start_node)
