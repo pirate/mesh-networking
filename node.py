@@ -59,7 +59,8 @@ class VirtualLink:
         pass
 
     def start(self):
-        pass
+        self.keep_listening = True
+        self.log("started.")
 
 class HardLink(threading.Thread):
     """
