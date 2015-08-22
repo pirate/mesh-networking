@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
 # MIT Liscence : Serg Kondrashov
+
 from oauthlib.uri_validate import path
-version = "0.4"
+version = "0.41"
 import traceback
 import time
 import random
@@ -21,6 +22,9 @@ def adj(node1, node2):
 
 def get_neighbors(nodes, node):
     links = node.interfaces
+    for link in links:
+        if not link.keep_listening:
+            links.remove(link)
     neigbors = []
     for link in links:
         neigbors += linkmembers(nodes, link)
@@ -32,7 +36,15 @@ def get_neighbors(nodes, node):
     return neigbors
 
 def get_cummon_link(node1, node2):
-    return [list(set(node1.interfaces).intersection(set(node2.interfaces))), 1]   
+    w = 1
+    link = list(set(node1.interfaces).intersection(set(node2.interfaces)))
+    if len(link) > 0:
+        for i in link:
+            if not i.keep_listening:
+                link.remove(i)
+    
+    return [link, w]
+
 
 def min_distance(graph):
     min_value = 1000000
@@ -46,6 +58,7 @@ def dijkstra(nodes, start_node):
     visited = {}
     to_visit = {start_node:0}
     path = {start_node:[start_node]}
+    
     while(to_visit):
         v = min_distance(to_visit)
         visited[v] = to_visit[v]
@@ -77,11 +90,17 @@ def fmt(type, value, fallback=None):
     except Exception:
         return fallback
 
-def even_eigen_randomize(nodes, links, min_eigen=1):
+def even_eigen_randomize(nodes, all_links, direct_links=True, min_links = 1, max_links = 5):
+    links = all_links[:]
     print("Introducing %s antisocial nodes to the party." % len(nodes))
     for node in nodes:
-        while len(node.interfaces) < min_eigen:#desired_min_eigenvalue:
-            node.add_interface(random.choice(links))
+        num_of_links = random.choice(range(min_links, max_links))
+        while len(node.interfaces) < num_of_links:#desired_min_eigenvalue:
+            link = random.choice(links)
+            node.add_interface(link)
+            if direct_links:
+                if len(linkmembers(nodes, link)) == 2:
+                    links.remove(link)
     
 def test_foo(nodes, links, min_eigen=1):
     nodes[0].interfaces += [random.choice(links)]    
