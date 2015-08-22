@@ -241,7 +241,7 @@ if __name__ == "__main__":
     try:
         while True:
             message = input(">")
-            node.broadcast(message)
+            node.broadcast(bytes(message, 'utf-8'))
             time.sleep(0.5)
 
     except (EOFError, KeyboardInterrupt):
