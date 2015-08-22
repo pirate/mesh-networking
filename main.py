@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MIT Liscence : Serg Kondrashov
-# ver : 0.11
+# ver : 0.12
 
 import cmd
 from multinode import *
