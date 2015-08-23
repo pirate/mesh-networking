@@ -59,7 +59,8 @@ class VirtualLink:
         pass
 
     def start(self):
-        pass
+        self.keep_listening = True
+        self.log("started.")
 
 class HardLink(threading.Thread):
     """
@@ -150,6 +151,11 @@ class Node(threading.Thread, MeshProtocol):
     own_addr = "fasdfsdafsa"
 
     def __init__(self, network_links=None, name=None):
+        self.interfaces = []
+        self.keep_listening = True
+        self.mac_addr = "de:ad:be:ef:de:ad"
+        self.ip_addr = "eeee:::::::1"
+        self.own_addr = "fasdfsdafsa"
         network_links = [] if network_links is None else network_links
         MeshProtocol.__init__(self)
         threading.Thread.__init__(self)
@@ -187,7 +193,7 @@ class Node(threading.Thread, MeshProtocol):
         for _ in range(len):
             sub = ""
             for _ in range(sub_len):
-                sub += random.choice("0123456789abccef")
+                sub += random.choice("0123456789abcdef")
             addr.append(sub)
         return ":".join(addr)
 
@@ -235,7 +241,7 @@ if __name__ == "__main__":
     try:
         while True:
             message = input(">")
-            node.broadcast(message)
+            node.broadcast(bytes(message, 'utf-8'))
             time.sleep(0.5)
 
     except (EOFError, KeyboardInterrupt):
