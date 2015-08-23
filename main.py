@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # MIT Liscence : Serg Kondrashov
-# ver : 0.12
+# ver : 0.13
 
 import cmd
 from multinode import *
-from pdb import Restart
+from asyncio.tasks import sleep
 
 class Cli(cmd.Cmd):
     def __init__(self, default=True):
@@ -12,7 +12,7 @@ class Cli(cmd.Cmd):
         print("\n\n" + '='*80)
         cmd.Cmd.__init__(self)
         self.prompt = "> "
-        self.intro = """type 'help' to show availible commands\ntype 'list' to view all nodes with links"""
+        self.intro = """type 'help' to show availible commands\ntype 'all' to view all nodes with links"""
         self.doc_header = "Availible commands (type 'help _command_' to get command help):"
         
         if not default:
@@ -47,27 +47,8 @@ class Cli(cmd.Cmd):
             #print("%s:%s" % (node, node.interfaces))
         print("[info]\tAll nodes and links are started")
      
-    def do_get_link(self, args):
-        args = self.parseline(args)
-        try:
-            node0 = int(args[0][1:])
-            node1 = int(args[1][1:])
-            if node0 != node1 and -1 < node0 < len(self.nodes) and -1 < node1 < len(self.nodes):
-                node0 = self.nodes[node0]
-                node1 = self.nodes[node1]
-                print('link = ', get_cummon_link(node0, node1))
-            elif node0 == node1:
-                print('same node')
-            elif -1 < node0 < len(self.nodes):
-                print('n%s is not a node!' % node1)
-            elif -1 < node1 < len(self.nodes):
-                print('n%s is not a node!' % node0)
-            else:
-                print('error1')
-        except:
-            print('error2')       
-                
     def do_n(self, args):
+        """node commands"""
         try:
             idx = int(args[0:])
         except ValueError:
@@ -83,6 +64,7 @@ class Cli(cmd.Cmd):
             print("Not a node.")
     
     def do_node(self, args):
+        """node commands"""
         do_n(self, args)
         
     def do_l(self, args):
@@ -117,8 +99,8 @@ class Cli(cmd.Cmd):
     or type text to send to the link"""
         self.do_l(self, args)
              
-    def do_list(self, args):
-        """show available nodes with it's links"""
+    def do_all(self, args):
+        """show available nodes with links"""
         print('current nodes:')
         for n in self.nodes:
             print('{0} : {1}'.format(n, n.interfaces))
@@ -141,19 +123,39 @@ class Cli(cmd.Cmd):
         print("EXITING CLEANLY")
         raise SystemExit(0)     
     
-    def do_get_neighbors(self, args):
-        """getting paths to all nodes using Dijkstra algorithm\njust type:
-        get_neighbors n0\nand you'll get all possible path to neighbors of [n0]"""
-        if self.get_node(args):
-            start_node = self.get_node(args)
-            wieght, path = dijkstra(self.nodes, start_node)
-            print(wieght)
-            print(path)
+    
+    GET_COMMANDS = ['link', 'neighbors']
+    
+    def do_get(self, args):
+        '''type "get neighbors n0" to get paths to all nodes from n0 using Dijkstra algorithm
+or type "get links n0 n1" to get all links between n0 and n1'''
+        args = self.parseline(args)
+        if args[0] == 'neighbors':
+            try:
+                weight, path = self.get_neighbors(args[1])
+                for i in weight:
+                    print('[{0}] to {1}: {2}, total {3} hops'.format(args[1], i, path[i], weight[i]))
+            except:
+                print('something wrong')
+        elif args[0] == 'link':
+            self.get_link(args[1])
         else:
-            print("'{0}' is not a node!".format(args))
+            print('???')
             
+    def complete_get(self, text, line, begidx, endidx):
+        if not text:
+            compl = self.GET_COMMANDS[:]
+        else:
+            compl = [ f for f in self.GET_COMMANDS if f.startswith(text)]
+        return compl
+          
     def default(self, line):
-        print("???")
+        if line[0] == 'n':
+            self.do_n(line[1:])
+        elif line[0] == 'l':
+            self.do_l(line[1:])
+        else:
+            print("???")
         
     def emptyline(self):
         pass
@@ -168,6 +170,34 @@ class Cli(cmd.Cmd):
             return self.nodes[idx]
         else:
             return False
+        
+    def get_neighbors(self, args):
+        start_node = self.get_node(args)
+        if start_node:
+            wieght, path = dijkstra(self.nodes, start_node)
+            return wieght, path
+        else:
+            print("'{0}' is not a node!".format(args))
+            
+    def get_link(self, args):
+        args = self.parseline(args)
+        try:
+            node0 = int(args[0][1:])
+            node1 = int(args[1][1:])
+            if node0 != node1 and -1 < node0 < len(self.nodes) and -1 < node1 < len(self.nodes):
+                node0 = self.nodes[node0]
+                node1 = self.nodes[node1]
+                print('link = ', get_cummon_link(node0, node1))
+            elif node0 == node1:
+                print('same node')
+            elif -1 < node0 < len(self.nodes):
+                print('n%s is not a node!' % node1)
+            elif -1 < node1 < len(self.nodes):
+                print('n%s is not a node!' % node0)
+            else:
+                print('error1')
+        except:
+            print('type:\n\tget link n0 n1')    
             
 if __name__ == '__main__':
     if input("run default? y/n [y]:") != "n":
