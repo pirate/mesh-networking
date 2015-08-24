@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MIT Liscence : Nick Sweeting
 # MIT Liscence : Serg Kondrashov
-# ver : 0.14
+# ver : 0.15
 
 import cmd
 #from asyncio.tasks import sleep
