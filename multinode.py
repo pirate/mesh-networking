@@ -1,198 +1,220 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 # MIT Liscence : Nick Sweeting
 # MIT Liscence : Serg Kondrashov
+# ver : 0.14
 
-from oauthlib.uri_validate import path
-version = "0.41"
-import traceback
-import time
-import random
-
+import cmd
+#from asyncio.tasks import sleep
 from node import VirtualLink, HardLink, Node
+import traceback
+#import time
+import random
 
 random.seed(None)
 
-def adj(node1, node2):
-    """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
-    if node1 != node2 and set(node1.interfaces).intersection(set(node2.interfaces)):
-        return 1
-    else:
-        # Not implemented yet, graphsearch to find min hops between two nodes
-        return 0
+class Ngn():
+    def __init__(self):
+        print('ngn started.')    
 
-def get_neighbors(nodes, node):
-    links = node.interfaces
-    for link in links:
-        if not link.keep_listening:
-            links.remove(link)
-    neigbors = []
-    for link in links:
-        neigbors += linkmembers(nodes, link)
-    while True:
-        try:
-            neigbors.remove(node)
-        except:
-            break
-    return neigbors
+    def adj(self, node1, node2):
+        """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
+        if node1 != node2 and set(node1.interfaces).intersection(set(node2.interfaces)):
+            return 1
+        else:
+            # Not implemented yet, graphsearch to find min hops between two nodes
+            return 0
 
-def get_cummon_link(node1, node2):
-    w = 1
-    link = list(set(node1.interfaces).intersection(set(node2.interfaces)))
-    if len(link) > 0:
-        for i in link:
-            if not i.keep_listening:
-                link.remove(i)
-    
-    return [link, w]
+    def get_neighbors(self, nodes, node):
+        links = node.interfaces
+        for link in links:
+            if not link.keep_listening:
+                links.remove(link)
+        neigbors = []
+        for link in links:
+            neigbors += self.linkmembers(nodes, link)
+        while True:
+            try:
+                neigbors.remove(node)
+            except:
+                break
+        return neigbors
 
-
-def min_distance(graph):
-    min_value = 1000000
-    min_node = ""
-    for i in graph:
-        if graph[i] < min_value:
-            min_node = i
-    return min_node
-
-def dijkstra(nodes, start_node):
-    visited = {}
-    to_visit = {start_node:0}
-    path = {start_node:[start_node]}
-    
-    while(to_visit):
-        v = min_distance(to_visit)
-        visited[v] = to_visit[v]
-        del to_visit[v]
-        for w in get_neighbors(nodes, v):
-            if w not in visited:
-                vwLength = visited[v] + get_cummon_link(v,w)[1]
-                if (w not in to_visit) or (vwLength < to_visit[w]):
-                    to_visit[w] = vwLength
-                    path[w] = path[v] + [w]
-    return visited, path
-    
-def linkmembers(nodes, link):
-    return [ node for node in nodes if link in node.interfaces ]
-
-def eigenvalue(nodes, node=None):
-    """
-    calculate the eigenvalue (number of connections) for a given node in an array of nodes connected by an array of links
-    if no node is given, return the minimum eigenvalue in the whole network
-    """
-    if node is None:
-        return sorted([eigenvalue(nodes, n) for n in nodes])[0] # return lowest eigenvalue
-    else:
-        return len([1 for n in nodes if adj(node, n)])
-
-def fmt(type, value, fallback=None):
-    try:
-        return type(value)
-    except Exception:
-        return fallback
-
-def even_eigen_randomize(nodes, all_links, direct_links=True, min_links = 1, max_links = 5):
-    links = all_links[:]
-    print("Introducing %s antisocial nodes to the party." % len(nodes))
-    for node in nodes:
-        num_of_links = random.choice(range(min_links, max_links))
-        while len(node.interfaces) < num_of_links:#desired_min_eigenvalue:
-            link = random.choice(links)
-            node.add_interface(link)
-            if direct_links:
-                if len(linkmembers(nodes, link)) == 2:
-                    links.remove(link)
-    
-def test_foo(nodes, links, min_eigen=1):
-    nodes[0].interfaces += [random.choice(links)]    
-
-help_str = """Type a nodename or linkname to send messages.
-        e.g. [$]:n35
-             [n35]<en1> ∂5:hi
-        or
-             [$]:l5
-             <l5>(3) [n1,n4,n3]:whats up
-    WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
-
-if __name__ == "__main__":
-    num_nodes = fmt(int, input("How many nodes do you want? [5]:"), 5)
-    num_links = fmt(int, input("How many links do you want? [10]:"), 10)
-    bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
-    randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"    # chose entropy or order
-
-    links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
-    links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
-
-    nodes = [Node(None, "n%s" % x) for x in range(num_nodes)]
+    def get_cummon_link(self, node1, node2):
+        w = 1
+        link = list(set(node1.interfaces).intersection(set(node2.interfaces)))
+        if len(link) > 0:
+            for i in link:
+                if not i.keep_listening:
+                    link.remove(i)
         
-    print("{0}.interfaces is {1}.interfaces = {2}".format(nodes[0], nodes[-1], nodes[0].interfaces is nodes[-1].interfaces))
+        return [link, w]
+    
+    def min_distance(self, graph):
+        min_value = 1000000
+        min_node = ""
+        for i in graph:
+            if graph[i] < min_value:
+                min_node = i
+        return min_node
+    
+    def dijkstra(self, nodes, start_node):
+        visited = {}
+        to_visit = {start_node:0}
+        path = {start_node:[start_node]}
+        
+        while(to_visit):
+            v = self.min_distance(to_visit)
+            visited[v] = to_visit[v]
+            del to_visit[v]
+            for w in self.get_neighbors(nodes, v):
+                if w not in visited:
+                    vwLength = visited[v] + self.get_cummon_link(v,w)[1]
+                    if (w not in to_visit) or (vwLength < to_visit[w]):
+                        to_visit[w] = vwLength
+                        path[w] = path[v] + [w]
+        return visited, path
+        
+    def linkmembers(self, nodes, link):
+        return [ node for node in nodes if link in node.interfaces ]
+    
+    def eigenvalue(self, nodes, node=None):
+        """
+        calculate the eigenvalue (number of connections) for a given node in an array of nodes connected by an array of links
+        if no node is given, return the minimum eigenvalue in the whole network
+        """
+        if node is None:
+            return sorted([self.eigenvalue(nodes, n) for n in nodes])[0] # return lowest eigenvalue
+        else:
+            return len([1 for n in nodes if self.adj(node, n)])
+    
+    def fmt(type, value, fallback=None):
+        try:
+            return type(value)
+        except Exception:
+            return fallback
+    
+    def even_eigen_randomize(self, nodes, all_links, direct_links=True, min_links = 1, max_links = 5):
+        links = all_links[:]
+        print("Introducing %s antisocial nodes to the party." % len(nodes))
+        for node in nodes:
+            num_of_links = random.choice(range(min_links, max_links))
+            while len(node.interfaces) < num_of_links:
+                link = random.choice(links)
+                node.add_interface(link)
+                if direct_links:
+                    if len(self.linkmembers(nodes, link)) == 2:
+                        links.remove(link)
 
-    desired_min_eigenvalue = 5  # must be less than the total number of nodes!!!
 
-    if randomize:
-        even_eigen_randomize(nodes, links, desired_min_eigenvalue)
+class Cli(cmd.Cmd):
+    def __init__(self, default=True):
+        """creation of nodes and links"""
+        print("\n\n" + '='*80)
+        cmd.Cmd.__init__(self)
+        self.prompt = "> "
+        self.intro = """type 'help' to show availible commands\ntype 'all' to view all nodes with links"""
+        self.doc_header = "Availible commands (type 'help _command_' to get command help):"
+        self.ngn = Ngn()
+        
+        if not default:
+            num_nodes = fmt(int, input("How many nodes do you want? [5]:"), 5)
+            num_links = fmt(int, input("How many links do you want? [10]:"), 10)
+            bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
+            randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"
+            direct_links = not str(input("One link only for 2 nodes? (y/n)[y]"))[:1].lower() == "n"
+            min_links = fmt(int, input("What is minimum of links in one node? [1]:"), 1)
+            max_links = fmt(int, input("What is maximum of links in one node? [5]:"), 5)
+        else:
+            num_nodes = 5
+            num_links = 10
+            bridge = False
+            randomize = True
+            direct_links = True
+            min_links = 1
+            max_links = 5
+
+        self.links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
+        self.links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
+
+        self.nodes = [Node(None, "n%s" % x) for x in range(num_nodes)]
+        
+        if randomize:
+            self.ngn.even_eigen_randomize(self.nodes, self.links, direct_links, min_links, max_links)
             
-    print("Let there be life.")
-    for link in links:
-        link.start()
-    for node in nodes:
-        node.start()
-        print("%s:%s" % (node, node.interfaces))
-
-    dont_exit = True
-
-    print(help_str)
-    try:
-        while dont_exit:
-            command = str(input("[$]:"))
-
-            if command[:1] == "l":
-                # LINK COMMANDS
-                try:
-                    idx = int(command[1:])
-                except ValueError:
-                    idx = -1
-                if -1 < idx < len(links):
-                    link = links[idx]
-                    link_members = linkmembers(nodes, link)
-                    message = str(input("%s(%s) %s:" % (link, len(link_members), link_members)))
-                    if message == "stop":
-                        link.stop()
-                    else:
-                        link.send(message)
-                else:
-                    print("Not a link.")
-                
-            elif command[:1] == "n":
-                # NODE COMMANDS
-                try:
-                    idx = int(command[1:])
-                except ValueError:
-                    idx = -1
-                if -1 < idx < len(nodes):
-                    node = nodes[idx]
-                    message = str(input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
-                    if message == "stop":
-                        node.stop()
-                    else:
-                        node.broadcast(message)
-                else:
-                    print("Not a node.")
-                
-            elif command[:1] == "h":
-                print(help_str)
+        for link in self.links:
+            link.start()
+        for node in self.nodes:
+            node.start()
+            #print("%s:%s" % (node, node.interfaces))
+        print("[info]\tAll nodes and links are started")
+    
+    def do_n(self, args):
+        """node commands"""
+        try:
+            idx = int(args[0:])
+        except ValueError:
+            idx = -1
+        if -1 < idx < len(self.nodes):
+            node = self.nodes[idx]
+            message = str(input("%s<%s> ∂%s:" % (node, node.interfaces, self.ngn.eigenvalue(self.nodes, node))))
+            if message == "stop":
+                node.stop()
             else:
-                print("Invalid command.")
-                print(help_str)
-
-            time.sleep(0.5)
-    except (KeyboardInterrupt, EOFError):
+                node.broadcast(message)
+        else:
+            print("Not a node.")
+    
+    def do_node(self, args):
+        """node commands"""
+        self.do_n(args)
+        
+    def do_l(self, args):
+        """type 'link 0' to choose <link 0>, then:
+    type 'stop' to stop this link
+    type '..' to cancel
+    or type text to send to the link"""
+        try:
+            idx = int(args[0:])
+            print(idx)
+        except ValueError:
+            idx = -1
+        if -1 < idx < len(self.links):
+            link = self.links[idx]
+            link_members = self.ngn.linkmembers(self.nodes, link)
+            message = str(input("%s(%s) %s>" % (link, len(link_members), link_members)))
+            if message == "stop":
+                link.stop()
+            elif message == "start":
+                link.start()
+            elif message == "..":
+                pass
+            else:
+                link.send(message)
+        else:
+             print("Not a link.")
+             
+    def do_link(self, args):
+        """type 'link 0' to choose <link 0>, then:
+    type 'stop' to stop this link
+    type '..' to cancel
+    or type text to send to the link"""
+        self.do_l(args)
+             
+    def do_all(self, args):
+        """show available nodes with links"""
+        print('current nodes:')
+        for n in self.nodes:
+            print('{0} : {1}'.format(n, n.interfaces))
+            
+    def do_exit(self, args):
+        """stop all nodes and links and exit"""
         try:
             print("Stopping Nodes")
-            for node in nodes:
+            for node in self.nodes:
                 node.stop()
                 node.join()
             print("Stopping Links")
-            for link in links:
+            for link in self.links:
                 link.stop()
                 link.join()
         except Exception as e:
@@ -200,97 +222,96 @@ if __name__ == "__main__":
             print("EXITING BADLY")
             raise SystemExit(1)
         print("EXITING CLEANLY")
-        raise SystemExit(0)
-    except Exception as e:
-        traceback.print_exc()
+        raise SystemExit(0)     
+
+    GET_COMMANDS = ['link', 'neighbors']
+    
+    def do_get(self, args):
+        '''type "get neighbors n0" to get paths to all nodes from n0 using Dijkstra algorithm
+or type "get links n0 n1" to get all links between n0 and n1'''
+        args = self.parseline(args)
+        if args[0] == 'neighbors':
+            try:
+                weight, path = self.get_neighbors(args[1])
+                for i in weight:
+                    print('[{0}] to {1}: {2}, total {3} hops'.format(args[1], i, path[i], weight[i]))
+            except:
+                print('something wrong')
+        elif args[0] == 'link':
+            self.get_link(args[1])
+        else:
+            print('???')
+            
+    def complete_get(self, text, line, begidx, endidx):
+        if not text:
+            compl = self.GET_COMMANDS[:]
+        else:
+            compl = [ f for f in self.GET_COMMANDS if f.startswith(text)]
+        return compl
+          
+    def default(self, line):
+        if line[0] == 'n':
+            self.do_n(line[1:])
+        elif line[0] == 'l':
+            self.do_l(line[1:])
+        else:
+            print("???")
+        
+    def emptyline(self):
+        pass
+    
+    def get_node(self, args):
+        a = cmd.Cmd.parseline(self, args)[0]
         try:
-            print("Stopping Nodes")
-            for node in nodes:
-                node.stop()
-                node.join()
-            print("Stopping Links")
-            for link in links:
-                link.stop()
-                link.join()
-        except Exception as e2:
-            traceback.print_exc()
-        print("EXITING BADLY")
-        raise SystemExit(1)
+            idx = int(a[1:])
+        except ValueError:
+            idx = -1
+        if -1 < idx < len(self.nodes):
+            return self.nodes[idx]
+        else:
+            return False
+        
+    def get_neighbors(self, args):
+        start_node = self.get_node(args)
+        if start_node:
+            wieght, path = self.ngn.dijkstra(self.nodes, start_node)
+            return wieght, path
+        else:
+            print("'{0}' is not a node!".format(args))
+            
+    def get_link(self, args):
+        args = self.parseline(args)
+        try:
+            node0 = int(args[0][1:])
+            node1 = int(args[1][1:])
+            if node0 != node1 and -1 < node0 < len(self.nodes) and -1 < node1 < len(self.nodes):
+                node0 = self.nodes[node0]
+                node1 = self.nodes[node1]
+                print('link = ', self.ngn.get_cummon_link(node0, node1))
+            elif node0 == node1:
+                print('same node')
+            elif -1 < node0 < len(self.nodes):
+                print('n%s is not a node!' % node1)
+            elif -1 < node1 < len(self.nodes):
+                print('n%s is not a node!' % node0)
+            else:
+                print('error1')
+        except:
+            print('type:\n\tget link n0 n1')    
+            
+    def do_get_map(self, args):
+        import networkx as nx
+        import matplotlib.pyplot as plt
+        pass
+    
 
-
-
-"""
-
-   ^      \/
-   |      |
-   |      |
-   \      /
-    \    /
-     \  /
-      |
-       |
-      |
-       |
-      |
-       |
-      |
-       |        < 4 bits can be sent in one clock tick
-      |                 - 2b up
-       |                - 2b down
-      |
-       |          or
-      |
-       |                - 1b up and 1b down in one tick
-
-
-two cables, each cable can transmit one packet per tick
-in order to switch transmission directions there is a
-small latency between ticks.
-
-this is a graph of the cable's state over time (time increases going down)
-^ means the traffic is going up; , means it's going down
-
-|^||^| time = 2 ticks; up, down = 2,2
-------       1 tick delay for each direction switch
-|,||,|
-------
-|^||^|
-------
-|,||,|
-------       wasted tick is the time it takes the line to empty the buffer holding the packet
-|^||^|
-------
-|,||,|
-------
-|^||^|
-------
-|,||,|
-------
-|^||^|
-
-|,||^| time = 2 ticks; up, down = 2,2
-|,||^|       no delay
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|       meanwhile, there are no --pauses-- because packets can be streamed one after another, crammed in tight
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-
-thus, in the same amount of time, a full-duplex setup where up and down are split
-on seperate wires will always beat two single time-sharing duplex cables
-
-of course, the wasted time will be much lower on a short line (probably in the <1ms range), but on longer cables
-it can probably grow to >1ms, which really slows down an ethernet cable trying to run at 100mbps.
-
-
- """
+if __name__ == '__main__':
+    if input("run default? y/n [y]:") != "n":
+        d = True
+    else:
+        d = False
+    cli = Cli(d)
+    try:
+        cli.cmdloop()
+    except KeyboardInterrupt:
+        print('exit...') 
