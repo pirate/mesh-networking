@@ -119,11 +119,12 @@ class Cli(cmd.Cmd):
         if not default:
             num_nodes = fmt(int, input("How many nodes do you want? [5]:"), 5)
             num_links = fmt(int, input("How many links do you want? [10]:"), 10)
-            bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
-            randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"
-            direct_links = not str(input("One link only for 2 nodes? (y/n)[y]"))[:1].lower() == "n"
             min_links = fmt(int, input("What is minimum of links in one node? [1]:"), 1)
             max_links = fmt(int, input("What is maximum of links in one node? [5]:"), 5)
+            direct_links = not str(input("One link only for 2 nodes? (y/n)[y]"))[:1].lower() == "n"
+            bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#)[no]:"), False)
+            randomize = not str(input("Randomize links, or play God? (r/g)[r]"))[:1].lower() == "g"
+
         else:
             num_nodes = 5
             num_links = 10
