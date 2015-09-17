@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.3"
+version = "0.4"
 
 import sys
 import random
@@ -154,15 +154,17 @@ class Node(threading.Thread, MeshProtocol):
     last_sent = None
 
     def __init__(self, network_links=None, name=None):
+        self.name = name or self.mac_addr
         self.interfaces = []
-        network_links = [] if network_links is None else network_links
+        self.last_sent = {}
+        
         MeshProtocol.__init__(self)
         threading.Thread.__init__(self)
+
         self.mac_addr = self.__genaddr__(6, 2)
         self.ip_addr = self.__genaddr__(8, 4)
-        self.name = name if name is not None else self.mac_addr
 
-        for link in network_links:
+        for link in network_links or []:
             self.add_interface(link)
 
     def __repr__(self):
@@ -205,9 +207,9 @@ class Node(threading.Thread, MeshProtocol):
         """stdout and stderr for the node"""
         print("%s %s" % (self, " ".join([str(x) for x in args])))
         
-    def recv(self, packet):
-        if packet == self.last_sent:
-            self.last_sent = None
+    def recv(self, packet, interface=None):
+        if self.last_sent.get(interface) == packet:
+            self.last_sent.pop(interface)
             return
         self.log("IN ", packet)
         for pattern, callback in self.listeners.items():
@@ -221,9 +223,9 @@ class Node(threading.Thread, MeshProtocol):
         """write packet to an interface or several interfaces"""
         self.log("OUT", (packet, ("255.255.255.255", ",".join([i.name for i in self.interfaces]))))
         try:
-            self.last_sent = packet
             for interface in links:
                 interface.send(packet)
+                self.last_sent[interface]
         except TypeError:
             # fail gracefully if its only a single interface and not a list of interfaces
             links.send(packet)

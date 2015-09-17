@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.3"
+version = "0.4"
 import traceback
 import time
 import random
+import sys
 
 from node import VirtualLink, HardLink, Node
 
@@ -49,12 +50,17 @@ help_str = """Type a nodename or linkname to send messages.
     WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
 
 if __name__ == "__main__":
+    hardware_iface = "en1"
+    port = 2015
+    if len(sys.argv) > 1:
+        hardware_iface = sys.argv[1]
+
     num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
     num_links = fmt(int, input("How many links do you want? (40):"), 40)
-    bridge = fmt(int, input("Link to wifi too, if so, on what port? (0 for no/#):"), False)
+    real_link = fmt(str, input("Link to wifi too? (%s):" % hardware_iface), hardware_iface)
     randomize = not str(input("Randomize links, or play God? (r/g)"))[:1].lower() == "g"    # chose entropy or order
-
-    links = [ HardLink("en1", bridge) ] if bridge else [ VirtualLink("l0") ]
+    
+    links = [ HardLink(real_link, port) ] if real_link else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
 
     nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
