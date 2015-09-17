@@ -5,14 +5,12 @@ Quickstart Guide:
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
 # run several of these in different terminal windows, or on different computers
-# by default, they will talk to each other over en1
-sudo python3 node.py [interface]
+# by default, they will talk to each other over en0
+sudo python3 node.py
 ```
 Or, if you want to simulate a small network in one place, run:
 
 ```bash
-python3 multinode.py
-# sudo is required only if you link with a physical interface (e.g. wifi)
 sudo python3 multinode.py
 ```
 
@@ -197,7 +195,7 @@ nodes = [Node([red, green, blue]),
 for node in nodes:
     node.start()
 
-nodes[0].broadcast("HELLO")
+nodes[0].send("HELLO")
 
 ```
 
