@@ -9,7 +9,7 @@
 
 import dnet
 
-def bring_it_down(iface="en4", spam_packet='HOST:all|GET:spam'):
+def bring_it_down(iface="en0", spam_packet='HOST:all|GET:spam'):
     datalink = dnet.eth(iface)
     h = datalink.get().encode('hex_codec')
     mac = ':'.join([h[i:i+2] for i in range(0, len(h), 2)])

@@ -11,12 +11,12 @@ from collections import defaultdict
 from queue import Queue, Empty
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 
-from protocols import MeshProtocol
+from protocols import SwitchProtocol
 
 class BaseLink:
     broadcast_addr = "00:00:00:00:00:00:00"
 
-    def __init__(self, name="l0001"):
+    def __init__(self, name="vlan1"):
         self.name = name
         self.keep_listening = True
         self.inq = defaultdict(Queue)  # buffers for receiving packets
@@ -142,14 +142,17 @@ class HardLink(threading.Thread, BaseLink):
 
 
 class Node(threading.Thread):
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, protocol=None):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Protocol=None):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
         self.keep_listening = True
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
-        self.protocol = protocol
+        if Protocol:
+            self.protocol = Protocol(node=self)
+        else:
+            self.protocol = None
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -198,7 +201,7 @@ class Node(threading.Thread):
     def send(self, packet, interfaces=None):
         """write packet to given interfaces, default is broadcast to all interfaces"""
         interfaces = interfaces or self.interfaces
-        self.log("OUT ", ("<"+",".join([i.name for i in self.interfaces])+">").ljust(25), packet)
+        self.log("OUT ", ("<"+",".join([i.name for i in interfaces])+">").ljust(25), packet)
         try:
             for interface in interfaces:
                 interface.send(packet)
@@ -211,18 +214,30 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         interface = sys.argv[1]
     link = HardLink(interface, 2016)
-    node = Node([link])
+    virt = VirtualLink()
+    
+    startpoint = Node([link], ' start')
+    switch = Node([link, virt], 'switch', Protocol=SwitchProtocol)
+    endpoint = Node([virt], '   end')
+
     link.start()
-    node.start()
+    virt.start()
+    
+    startpoint.start()
+    switch.start()
+    endpoint.start()
 
     try:
         while True:
             message = input(">")
-            node.send(bytes(message, 'UTF-8'))
+            startpoint.send(bytes(message, 'UTF-8'))
             time.sleep(0.5)
 
     except (EOFError, KeyboardInterrupt):
-        node.stop()
+        startpoint.stop()
+        switch.stop()
+        endpoint.stop()
         link.stop()
+        virt.stop()
         print("EXITING")
         exit(0)
