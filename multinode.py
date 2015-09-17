@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.4"
+version = "0.5"
 import traceback
 import time
 import random
-import sys
 
 from node import VirtualLink, HardLink, Node
 
@@ -42,28 +41,30 @@ def even_eigen_randomize(nodes, links, min_eigen=1):
     print("Introducing %s antisocial nodes to the party." % len(nodes))
     for node in nodes:
         while len(node.interfaces) < desired_min_eigenvalue:
-            node.add_interface(random.choice(links))
+            node.interfaces.append(random.choice(links))
 
-help_str = """Type a nodename or linkname to send messages.
+help_str = """Type a nodelabel or linkname to send messages.
         e.g. [$]:n35
              [n35]<en1> ∂5:hi
         or
              [$]:l5
-             <l5>(3) [n1,n4,n3]:whats up
-    WARNING: ROUTING IS NOT IMPLEMENTED RIGHT NOW, EVERY NODE IS CONNECTED TO EVERY LINK (THIS IS A BUG)"""
+             <l5>(3) [n1,n4,n3]:whats up"""
 
 if __name__ == "__main__":
-    hardware_iface = "en1"
-    port = 2015
+    import sys
+    # import netifaces
+    # hardware_iface = netifaces.gateways()['default'][2][1]
+    hardware_iface = 'en0'
+    port = 2016
     if len(sys.argv) > 1:
         hardware_iface = sys.argv[1]
 
-    num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
-    num_links = fmt(int, input("How many links do you want? (40):"), 40)
-    real_link = fmt(str, input("Link to wifi too? (%s:%s):" % (hardware_iface, port)), hardware_iface)
-    randomize = not str(input("Randomize links, or play God? (r/g)"))[:1].lower() == "g"    # chose entropy or order
+    num_nodes = fmt(int, input("How many nodes do you want? (14):"), 14)
+    num_links = fmt(int, input("How many links do you want? (6):"), 6)
+    real_link = str(input("Link to %s:%s too? (y/n):" % (hardware_iface, port)))[:1].lower() == "y"
+    randomize = not str(input("Randomize links? (y/n)"))[:1].lower() == "n"
     
-    links = [ HardLink(real_link, port) ] if real_link else [ VirtualLink("l0") ]
+    links = [ HardLink(hardware_iface, port) ] if real_link else [ VirtualLink("l0") ]
     links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
 
     nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
@@ -74,8 +75,8 @@ if __name__ == "__main__":
         even_eigen_randomize(nodes, links, desired_min_eigenvalue)
             
     print("Let there be life.")
-    for link in links:
-        link.start()
+
+    [link.start() for link in links]
     for node in nodes:
         node.start()
         print("%s:%s" % (node, node.interfaces))
@@ -89,12 +90,9 @@ if __name__ == "__main__":
 
             if command[:1] == "l":
                 # LINK COMMANDS
-                try:
-                    idx = int(command[1:])
-                except ValueError:
-                    idx = -1
-                if -1 < idx < len(links):
-                    link = links[idx]
+                link = [l for l in links if l.name[1:] == command[1:]]
+                if link:
+                    link = link[0]
                     link_members = linkmembers(nodes, link)
                     message = str(input("%s(%s) %s:" % (link, len(link_members), link_members)))
                     if message == "stop":
@@ -106,17 +104,14 @@ if __name__ == "__main__":
                 
             elif command[:1] == "n":
                 # NODE COMMANDS
-                try:
-                    idx = int(command[1:])
-                except ValueError:
-                    idx = -1
-                if -1 < idx < len(nodes):
-                    node = nodes[idx]
+                node = [n for n in nodes if n.name[1:] == command[1:]]
+                if node:
+                    node = node[0]
                     message = str(input("%s<%s> ∂%s:" % (node, node.interfaces, eigenvalue(nodes, node))))
                     if message == "stop":
                         node.stop()
                     else:
-                        node.broadcast(bytes(message, 'UTF-8'))  # convert python str to bytes for sending over the wire
+                        node.send(bytes(message, 'UTF-8'))  # convert python str to bytes for sending over the wire
                 else:
                     print("Not a node.")
                 
@@ -127,7 +122,7 @@ if __name__ == "__main__":
                 print(help_str)
 
             time.sleep(0.5)
-    except e:
+    except BaseException as e:
         intentional = type(e) in (KeyboardInterrupt, EOFError)
         if not intentional:
             traceback.print_exc()
@@ -135,17 +130,15 @@ if __name__ == "__main__":
             print("Stopping Nodes")
             for node in nodes:
                 node.stop()
-                node.join()
             print("Stopping Links")
             for link in links:
                 link.stop()
-                link.join()
         except Exception as e:
             traceback.print_exc()
             print("EXITING BADLY")
             raise SystemExit(1)
         print("EXITING CLEANLY" if intentional else "EXITING BADLY")
-        raise SystemExit(int(intentional))
+        raise SystemExit(int(not intentional))
 
 """
 
