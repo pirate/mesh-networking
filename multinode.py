@@ -59,9 +59,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         hardware_iface = sys.argv[1]
 
-    num_nodes = fmt(int, input("How many nodes do you want? (14):"), 14)
-    num_links = fmt(int, input("How many links do you want? (6):"), 6)
-    real_link = str(input("Link to %s:%s too? (y/n):" % (hardware_iface, port)))[:1].lower() == "y"
+    num_nodes = fmt(int, input("How many nodes do you want? (6):"), 6)
+    num_links = fmt(int, input("How many links do you want? (3):"), 3)
+    real_link = not str(input("Link to %s:%s too? (y/n):" % (hardware_iface, port)))[:1].lower() == "n"
     randomize = not str(input("Randomize links? (y/n)"))[:1].lower() == "n"
     
     links = [ HardLink(hardware_iface, port) ] if real_link else [ VirtualLink("l0") ]
