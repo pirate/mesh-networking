@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
 
-    desired_min_eigenvalue = 2  # must be less than the total number of nodes!!!
+    desired_min_eigenvalue = min(max(1, len(nodes)-2), num_links)  # must be less than the total number of nodes!!!
 
     if randomize:
         even_eigen_randomize(nodes, links, desired_min_eigenvalue)
