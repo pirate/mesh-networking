@@ -203,7 +203,7 @@ class Node(threading.Thread, MeshProtocol):
     def recv(self, packet):
         self.log("IN ", packet)
         for pattern, callback in self.listeners.items():
-            if pattern in packet:
+            if bytes(pattern, 'UTF-8') in packet:
                 try:
                     callback(packet)
                 except TypeError:
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     try:
         while True:
             message = input(">")
-            node.broadcast(message)
+            node.broadcast(bytes(message, 'UTF-8'))
             time.sleep(0.5)
 
     except (EOFError, KeyboardInterrupt):

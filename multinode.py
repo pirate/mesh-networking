@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
 
-    desired_min_eigenvalue = 1  # must be less than the total number of nodes!!!
+    desired_min_eigenvalue = 2  # must be less than the total number of nodes!!!
 
     if randomize:
         even_eigen_randomize(nodes, links, desired_min_eigenvalue)
@@ -93,7 +93,7 @@ if __name__ == "__main__":
                     if message == "stop":
                         link.stop()
                     else:
-                        link.send(message)
+                        link.send(bytes(message, 'UTF-8'))  # convert python str to bytes for sending over the wire
                 else:
                     print("Not a link.")
                 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                     if message == "stop":
                         node.stop()
                     else:
-                        node.broadcast(message)
+                        node.broadcast(bytes(message, 'UTF-8'))  # convert python str to bytes for sending over the wire
                 else:
                     print("Not a node.")
                 
