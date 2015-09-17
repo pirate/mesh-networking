@@ -151,6 +151,7 @@ class Node(threading.Thread, MeshProtocol):
     mac_addr = "de:ad:be:ef:de:ad"
     ip_addr = "eeee:::::::1"
     own_addr = "fasdfsdafsa"
+    last_sent = None
 
     def __init__(self, network_links=None, name=None):
         self.interfaces = []
@@ -205,6 +206,9 @@ class Node(threading.Thread, MeshProtocol):
         print("%s %s" % (self, " ".join([str(x) for x in args])))
         
     def recv(self, packet):
+        if packet == self.last_sent:
+            self.last_sent = None
+            return
         self.log("IN ", packet)
         for pattern, callback in self.listeners.items():
             if bytes(pattern, 'UTF-8') in packet:
@@ -217,6 +221,7 @@ class Node(threading.Thread, MeshProtocol):
         """write packet to an interface or several interfaces"""
         self.log("OUT", (packet, ("255.255.255.255", ",".join([i.name for i in self.interfaces]))))
         try:
+            self.last_sent = packet
             for interface in links:
                 interface.send(packet)
         except TypeError:
