@@ -154,12 +154,11 @@ class Node(threading.Thread, MeshProtocol):
     last_sent = None
 
     def __init__(self, network_links=None, name=None):
+        MeshProtocol.__init__(self)
+        threading.Thread.__init__(self)
         self.name = name or self.mac_addr
         self.interfaces = []
         self.last_sent = {}
-        
-        MeshProtocol.__init__(self)
-        threading.Thread.__init__(self)
 
         self.mac_addr = self.__genaddr__(6, 2)
         self.ip_addr = self.__genaddr__(8, 4)
@@ -227,7 +226,7 @@ class Node(threading.Thread, MeshProtocol):
         try:
             for interface in links:
                 interface.send(packet)
-                self.last_sent[interface]
+                self.last_sent[interface] = packet
         except TypeError:
             # fail gracefully if its only a single interface and not a list of interfaces
             links.send(packet)

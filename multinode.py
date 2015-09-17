@@ -57,8 +57,6 @@ if __name__ == "__main__":
     port = 2015
     if len(sys.argv) > 1:
         hardware_iface = sys.argv[1]
-    if len(sys.argv) > 2:
-        port = int(sys.argv[2])
 
     num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
     num_links = fmt(int, input("How many links do you want? (40):"), 40)
