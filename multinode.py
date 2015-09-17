@@ -8,9 +8,12 @@ import sys
 
 from node import VirtualLink, HardLink, Node
 
-def adj(node1, node2):
+def hops(node1, node2):
     """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
-    if node1 != node2 and set(node1.interfaces).intersection(set(node2.interfaces)):
+    if node1 == node2:
+        return 0
+    elif set(node1.interfaces) & set(node2.interfaces):
+        # they share a common interface
         return 1
     else:
         # Not implemented yet, graphsearch to find min hops between two nodes
@@ -27,7 +30,7 @@ def eigenvalue(nodes, node=None):
     if node is None:
         return sorted([eigenvalue(nodes, n) for n in nodes])[0] # return lowest eigenvalue
     else:
-        return len([1 for n in nodes if adj(node, n)])
+        return len([1 for n in nodes if hops(node, n)])
 
 def fmt(type, value, fallback=None):
     try:
@@ -54,10 +57,12 @@ if __name__ == "__main__":
     port = 2015
     if len(sys.argv) > 1:
         hardware_iface = sys.argv[1]
+    if len(sys.argv) > 2:
+        port = int(sys.argv[2])
 
     num_nodes = fmt(int, input("How many nodes do you want? (26):"), 26)
     num_links = fmt(int, input("How many links do you want? (40):"), 40)
-    real_link = fmt(str, input("Link to wifi too? (%s):" % hardware_iface), hardware_iface)
+    real_link = fmt(str, input("Link to wifi too? (%s:%s):" % (hardware_iface, port)), hardware_iface)
     randomize = not str(input("Randomize links, or play God? (r/g)"))[:1].lower() == "g"    # chose entropy or order
     
     links = [ HardLink(real_link, port) ] if real_link else [ VirtualLink("l0") ]
@@ -124,7 +129,10 @@ if __name__ == "__main__":
                 print(help_str)
 
             time.sleep(0.5)
-    except (KeyboardInterrupt, EOFError):
+    except e:
+        intentional = type(e) in (KeyboardInterrupt, EOFError)
+        if not intentional:
+            traceback.print_exc()
         try:
             print("Stopping Nodes")
             for node in nodes:
@@ -138,25 +146,8 @@ if __name__ == "__main__":
             traceback.print_exc()
             print("EXITING BADLY")
             raise SystemExit(1)
-        print("EXITING CLEANLY")
-        raise SystemExit(0)
-    except Exception as e:
-        traceback.print_exc()
-        try:
-            print("Stopping Nodes")
-            for node in nodes:
-                node.stop()
-                node.join()
-            print("Stopping Links")
-            for link in links:
-                link.stop()
-                link.join()
-        except Exception as e2:
-            traceback.print_exc()
-        print("EXITING BADLY")
-        raise SystemExit(1)
-
-
+        print("EXITING CLEANLY" if intentional else "EXITING BADLY")
+        raise SystemExit(int(intentional))
 
 """
 

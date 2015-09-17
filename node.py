@@ -208,6 +208,8 @@ class Node(threading.Thread, MeshProtocol):
         print("%s %s" % (self, " ".join([str(x) for x in args])))
         
     def recv(self, packet, interface=None):
+        # ignore last packet we sent to prevent receiving copies of everything we send
+        # TODO: move this to the protocol level, the node should never ignore something the link gives it
         if self.last_sent.get(interface) == packet:
             self.last_sent.pop(interface)
             return
