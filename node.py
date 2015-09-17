@@ -28,6 +28,7 @@ class VirtualLink:
 
     def __init__(self, iface="vlan", port=None):
         self.name = iface
+        self.inq = {}
         self.log("ready.")
 
     def register(self, node_mac_addr):
@@ -71,7 +72,7 @@ class HardLink(threading.Thread):
     interface = None
     name = ""
     keep_listening = True
-    inq = {}
+    inq = {}  # mutable, must be recreated on init
 
     def log(self, *args):
         """stdout and stderr for the link"""
@@ -82,6 +83,8 @@ class HardLink(threading.Thread):
 
     def __init__(self, iface="en1", port=3003):
         threading.Thread.__init__(self)
+        
+        self.inq = {}
         self.port = port
         self.name = iface+":"+str(port)
 
@@ -143,13 +146,14 @@ class HardLink(threading.Thread):
         self.join()
 
 class Node(threading.Thread, MeshProtocol):
-    interfaces = []
+    interfaces = []  # mutable, must be recreated on init
     keep_listening = True
     mac_addr = "de:ad:be:ef:de:ad"
     ip_addr = "eeee:::::::1"
     own_addr = "fasdfsdafsa"
 
     def __init__(self, network_links=None, name=None):
+        self.interfaces = []
         network_links = [] if network_links is None else network_links
         MeshProtocol.__init__(self)
         threading.Thread.__init__(self)
@@ -225,7 +229,7 @@ class Node(threading.Thread, MeshProtocol):
 
 if __name__ == "__main__":
     interface = "en1"
-    if(len(sys.argv) > 1):
+    if len(sys.argv) > 1:
         interface = sys.argv[1]
     link = HardLink(interface, 2003)
     node = Node([link])

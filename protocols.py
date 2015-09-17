@@ -1,5 +1,8 @@
 class BaseProtocol:
-    listeners = {}
+    listeners = {}  # mutable, must be recreated on init
+
+    def __init__(self):
+        self.listeners = {}
 
     def broadcast(*args, **kwargs):
         pass

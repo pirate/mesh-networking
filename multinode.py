@@ -7,8 +7,6 @@ import random
 
 from node import VirtualLink, HardLink, Node
 
-random.seed(None)
-
 def adj(node1, node2):
     """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
     if node1 != node2 and set(node1.interfaces).intersection(set(node2.interfaces)):
