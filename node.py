@@ -9,11 +9,16 @@ from collections import defaultdict
 from queue import Queue
 
 from links import VirtualLink, UDPLink, IRCLink
-from protocols import SwitchProtocol, PrintProtocol
+from programs import Switch, Printer
 from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 
 class Node(threading.Thread):
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Protocol=PrintProtocol):
+    """a Node represents a computer.  node.interfaces is a list of the network links it's connected to.
+        Nodes process incoming traffic through it's filters, then places it in its inq for its Program to handle.
+        Programs process packets off the node's incoming queue, then send responses out the node's outbound filters, 
+        and finally out to the right network interface.
+    """
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=Printer):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
@@ -21,9 +26,9 @@ class Node(threading.Thread):
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
         self.inq = defaultdict(Queue)
-        self.filters = [LoopbackFilter(), UniqueFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the Protocol
-        self.protocol = Protocol(node=self)    # init and start the Protocol (program that will be processing incoming packets)
-        self.protocol.start()
+        self.filters = [LoopbackFilter(), UniqueFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the program
+        self.program = Program(node=self)    # init and start the program (program that will be processing incoming packets)
+        self.program.start()
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -46,7 +51,7 @@ class Node(threading.Thread):
 
     def stop(self):
         self.keep_listening = False
-        self.protocol.stop()
+        self.program.stop()
         self.join()
 
     ### Runloop
@@ -67,7 +72,7 @@ class Node(threading.Thread):
         
     def recv(self, packet, interface):
         """run incoming packet through the filters, then place it in its inq"""
-        # the packet is piped into the first filter, then the result of that into the second, etc.
+        # the packet is piped into the first filter, then the result of that into the second filter, etc.
         for f in self.filters:
             packet = f.tr(packet, interface)
         if packet:
@@ -97,10 +102,10 @@ if __name__ == "__main__":
     ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), VirtualLink('irc3'), UDPLink('en4', 2016), VirtualLink('irc5'))
     nodes = (
         Node([ls[0]], 'start'),
-        Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),
-        Node([ls[0], ls[1]], 'r1', Protocol=SwitchProtocol),
-        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter, DuplicateFilter], Protocol=SwitchProtocol),
-        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter, StringFilter.match(b'red')], Protocol=SwitchProtocol),
+        Node([ls[0], ls[2]], 'l1', Program=Switch),
+        Node([ls[0], ls[1]], 'r1', Program=Switch),
+        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter, DuplicateFilter], Program=Switch),
+        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter, StringFilter.match(b'red')], Program=Switch),
         Node([ls[5], ls[4]], 'end'),            # l2 wont forward two of the same packet in a row
     )                                           # r2 wont forward any packet unless it contains the string 'red'
     [l.start() for l in ls]

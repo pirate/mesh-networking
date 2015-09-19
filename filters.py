@@ -23,7 +23,7 @@ class BaseFilter:
 class DuplicateFilter(BaseFilter):
     """filter sending/receiving duplicates of the same packet in a row.
     
-        This is an example of a stateful filter, it needs to remember 
+        This is an example of a stateful filter, it needs to remember
         last_sent and last_recv between packet recvs.
     """
     def __init__(self):

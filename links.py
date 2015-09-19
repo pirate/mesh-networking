@@ -255,12 +255,13 @@ class RawSocketLink(threading.Thread, VirtualLink):
     Connect nodes on two different laptops to a UDPLink() with the same port and they will talk over wifi or ethernet.
     """
 
-    def __init__(self, name="en0", port=2016):
+    def __init__(self, iface="en0"):
         # UDPLinks have to be run in a seperate thread
         # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
+        import dnet
         threading.Thread.__init__(self)
         VirtualLink.__init__(self, name=name)
-        self.port = port
+        self.iface = iface
         self.log("starting...")
         self.__initsocket__()
 
@@ -269,12 +270,11 @@ class RawSocketLink(threading.Thread, VirtualLink):
 
     def __initsocket__(self):
         """bind to the datagram socket (UDP), and enable BROADCAST mode"""
-        self.net_socket = socket(AF_INET, SOCK_DGRAM)
-        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
-        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
-        self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        self.net_socket.setblocking(0)
-        self.net_socket.bind(('', self.port))
+        datalink = dnet.eth(self.iface)
+        h = datalink.get().encode('hex_codec')
+        mac = ':'.join([h[i:i+2] for i in range(0, len(h), 2)])
+        print('Raw Socket on %s [%s] connected.' % (iface, mac))
+        self.datalink = datalink
 
     ### Runloop
 
