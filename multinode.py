@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # MIT Liscence : Nick Sweeting
-version = "0.5"
+version = "0.8"
 import traceback
 import time
 import random
 
-from node import VirtualLink, HardLink, Node
+from node import Node
+from links import UDPLink, VirtualLink, IRCLink
+from protocols import PrintProtocol, SwitchProtocol
 
 def hops(node1, node2):
     """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
@@ -19,7 +21,7 @@ def hops(node1, node2):
         return 0
 
 def linkmembers(nodes, link):
-    return [ node for node in nodes if link in node.interfaces ]
+    return [node for node in nodes if link in node.interfaces]
 
 def eigenvalue(nodes, node=None):
     """
@@ -31,17 +33,12 @@ def eigenvalue(nodes, node=None):
     else:
         return len([1 for n in nodes if hops(node, n)])
 
-def fmt(type, value, fallback=None):
-    try:
-        return type(value)
-    except Exception:
-        return fallback
-
 def even_eigen_randomize(nodes, links, min_eigen=1):
     print("Introducing %s antisocial nodes to the party." % len(nodes))
     for node in nodes:
-        while len(node.interfaces) < desired_min_eigenvalue:
+        while len(node.interfaces) < ((desired_min_eigenvalue - random.randint(0, 3)) or 1):
             node.interfaces.append(random.choice(links))
+
 
 help_str = """Type a nodelabel or linkname to send messages.
         e.g. [$]:n35
@@ -50,44 +47,56 @@ help_str = """Type a nodelabel or linkname to send messages.
              [$]:l5
              <l5>(3) [n1,n4,n3]:whats up"""
 
+def ask(type, question, fallback=None):
+    value = input(question)
+    if type == bool:
+        if fallback:
+            return not value[:1].lower() == "n"
+        else:
+            return value[:1].lower() == "y"
+    try:
+        return type(value)
+    except Exception:
+        return fallback
+
 if __name__ == "__main__":
     import sys
     # import netifaces
     # hardware_iface = netifaces.gateways()['default'][2][1]
-    hardware_iface = 'en0'
     port = 2016
-    if len(sys.argv) > 1:
-        hardware_iface = sys.argv[1]
+    # if len(sys.argv) > 1:
+        # hardware_iface = sys.argv[1]
 
-    num_nodes = fmt(int, input("How many nodes do you want? (6):"), 6)
-    num_links = fmt(int, input("How many links do you want? (3):"), 3)
-    real_link = not str(input("Link to %s:%s too? (y/n):" % (hardware_iface, port)))[:1].lower() == "n"
-    randomize = not str(input("Randomize links? (y/n)"))[:1].lower() == "n"
+    num_nodes = ask(int,  "How many nodes do you want?     [45]:",      45)
+    num_links = ask(int,  "How many links do you want?     [26]:",      26)
+    irc_link  = ask(bool, "Link to internet?              y/[n]:",   False)
+    real_link = ask(bool, "Link to local networks?        [y]/n:",    True)
+    randomize = ask(bool, "Randomize connections?         [y]/n:",    True)
     
-    links = [ HardLink(hardware_iface, port) ] if real_link else [ VirtualLink("l0") ]
-    links += [ VirtualLink("l%s" % (x+1)) for x in range(num_links-1) ]
+    links = []
+    if real_link:
+        links += [UDPLink('en0', port), UDPLink('en1', port+1), UDPLink('en2', port+2)]
+    if irc_link:
+        links += [IRCLink('irc0')]
+    links += [ VirtualLink("vl%s" % (x+1)) for x in range(num_links) ]
 
-    nodes = [ Node(None, "n%s" % x) for x in range(num_nodes) ]
-
-    desired_min_eigenvalue = min(max(1, len(nodes)-2), num_links)  # must be less than the total number of nodes!!!
+    nodes = [ Node(None, "n%s" % x, Protocol=random.choice((PrintProtocol, SwitchProtocol))) for x in range(num_nodes) ]
 
     if randomize:
+        desired_min_eigenvalue = min(max(1, len(nodes)-2), num_links)  # must be less than the total number of nodes!!!
         even_eigen_randomize(nodes, links, desired_min_eigenvalue)
             
     print("Let there be life.")
-
     [link.start() for link in links]
     for node in nodes:
         node.start()
         print("%s:%s" % (node, node.interfaces))
 
-    dont_exit = True
-
     print(help_str)
+    dont_exit = True
     try:
         while dont_exit:
             command = str(input("[$]:"))
-
             if command[:1] == "l":
                 # LINK COMMANDS
                 link = [l for l in links if l.name[1:] == command[1:]]
@@ -127,16 +136,11 @@ if __name__ == "__main__":
         if not intentional:
             traceback.print_exc()
         try:
-            print("Stopping Nodes")
-            for node in nodes:
-                node.stop()
-            print("Stopping Links")
-            for link in links:
-                link.stop()
+            [n.stop() for n in nodes]
+            [l.stop() for l in links]
         except Exception as e:
             traceback.print_exc()
-            print("EXITING BADLY")
-            raise SystemExit(1)
+            intentional = False
         print("EXITING CLEANLY" if intentional else "EXITING BADLY")
         raise SystemExit(int(not intentional))
 

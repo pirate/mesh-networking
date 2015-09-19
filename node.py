@@ -8,11 +8,12 @@ import time
 from collections import defaultdict
 from queue import Queue
 
-from links import VirtualLink, HardLink, IRCLink
-from protocols import SwitchProtocol, PrintProtocol, LoopbackFilter, DuplicateFilter, StringFilter
+from links import VirtualLink, UDPLink, IRCLink
+from protocols import SwitchProtocol, PrintProtocol
+from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 
 class Node(threading.Thread):
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=(LoopbackFilter,), Protocol=PrintProtocol):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Protocol=PrintProtocol):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
@@ -20,7 +21,7 @@ class Node(threading.Thread):
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
         self.inq = defaultdict(Queue)
-        self.filters = [F() for F in Filters]  # initialize the filters that shape incoming and outgoing traffic before it hits the Protocol
+        self.filters = [LoopbackFilter(), UniqueFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the Protocol
         self.protocol = Protocol(node=self)    # init and start the Protocol (program that will be processing incoming packets)
         self.protocol.start()
 
@@ -92,8 +93,8 @@ if __name__ == "__main__":
     print("[start]-en0                                [end]")
     print("          \[l1]<--vlan2-->[l2]<--irc3:irc5-/\n")
 
-    ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), HardLink('en4', 2016), IRCLink('irc5'))
-    # ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), VirtualLink('irc3'), HardLink('en4', 2016), VirtualLink('irc5'))
+    # ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), UDPLink('en4', 2016), IRCLink('irc5'))
+    ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), VirtualLink('irc3'), UDPLink('en4', 2016), VirtualLink('irc5'))
     nodes = (
         Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),

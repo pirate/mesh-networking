@@ -78,13 +78,13 @@ class VirtualLink:
         else:
             self.log("is down.")
 
-class HardLink(threading.Thread, VirtualLink):
+class UDPLink(threading.Thread, VirtualLink):
     """This link sends all traffic as BROADCAST UDP packets on all physical ifaces.
-    Connect nodes on two different laptops to a HardLink() with the same port and they will talk over wifi or ethernet.
+    Connect nodes on two different laptops to a UDPLink() with the same port and they will talk over wifi or ethernet.
     """
 
     def __init__(self, name="en0", port=2016):
-        # HardLinks have to be run in a seperate thread
+        # UDPLinks have to be run in a seperate thread
         # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
         threading.Thread.__init__(self)
         VirtualLink.__init__(self, name=name)
@@ -99,7 +99,7 @@ class HardLink(threading.Thread, VirtualLink):
         """bind to the datagram socket (UDP), and enable BROADCAST mode"""
         self.net_socket = socket(AF_INET, SOCK_DGRAM)
         self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
-        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple HardLinks to all listen for UDP packets
+        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
         self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         self.net_socket.setblocking(0)
         self.net_socket.bind(('', self.port))
@@ -112,7 +112,7 @@ class HardLink(threading.Thread, VirtualLink):
         # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
         while self.keep_listening:
             try:
-                read_ready, w, x = select.select([self.net_socket], [], [], 0.2)
+                read_ready, w, x = select.select([self.net_socket], [], [], 0.01)
             except Exception:
                 # catch timeouts
                 r = []
@@ -139,7 +139,7 @@ class HardLink(threading.Thread, VirtualLink):
                 self.send(packet, retry=False)
 
 class IRCLink(threading.Thread, VirtualLink):
-    """This link connects to an IRC channel and uses it to simulate a BROADCAST link.
+    """This link connects to an IRC channel and uses it to simulate a BROADCAST connection over the internet.
     Connect nodes on different computers to an IRCLink on the same channel and they will talk over the internet."""
     def __init__(self, name='irc1', server='irc.freenode.net', port=6667, channel='##medusa', nick='bobbyTables'):
         threading.Thread.__init__(self)
@@ -213,7 +213,7 @@ class IRCLink(threading.Thread, VirtualLink):
         """runloop that reads incoming packets off the interface into the inq buffer"""
         self.log("ready to receive.")
         # we use a runloop instead of synchronous recv so stopping the connection mid-recv is possible
-        self.net_socket.settimeout(0.2)
+        self.net_socket.settimeout(0.05)
         while self.keep_listening:
             try:
                 packet = self.net_socket.recv(4096)
@@ -249,3 +249,63 @@ class IRCLink(threading.Thread, VirtualLink):
                     self.send(packet, retry=False)
         else:
             self.log('is down.')
+
+class RawSocketLink(threading.Thread, VirtualLink):
+    """This link sends all traffic as BROADCAST UDP packets on all physical ifaces.
+    Connect nodes on two different laptops to a UDPLink() with the same port and they will talk over wifi or ethernet.
+    """
+
+    def __init__(self, name="en0", port=2016):
+        # UDPLinks have to be run in a seperate thread
+        # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
+        threading.Thread.__init__(self)
+        VirtualLink.__init__(self, name=name)
+        self.port = port
+        self.log("starting...")
+        self.__initsocket__()
+
+    def __repr__(self):
+        return "<"+self.name+">"
+
+    def __initsocket__(self):
+        """bind to the datagram socket (UDP), and enable BROADCAST mode"""
+        self.net_socket = socket(AF_INET, SOCK_DGRAM)
+        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
+        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
+        self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        self.net_socket.setblocking(0)
+        self.net_socket.bind(('', self.port))
+
+    ### Runloop
+
+    def run(self):
+        """runloop that reads incoming packets off the interface into the inq buffer"""
+        self.log("ready to receive.")
+        # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
+        while self.keep_listening:
+            try:
+                read_ready, w, x = select.select([self.net_socket], [], [], 0.01)
+            except Exception:
+                # catch timeouts
+                r = []
+            if read_ready:
+                packet, addr = read_ready[0].recvfrom(4096)
+                if addr[1] == self.port:
+                    # for each address listening to this link
+                    for mac_addr, recv_queue in self.inq.items():
+                        recv_queue.put(packet)  # put packet in node's recv queue
+                else:
+                    pass  # not meant for us, it was sent to a different port
+
+    ### IO
+
+    def send(self, packet, retry=True):
+        """send a packet down the line to the inteface"""
+        addr = ('255.255.255.255', self.port)  # 255. is the broadcast IP for UDP
+        try:
+            self.net_socket.sendto(packet, addr)
+        except Exception as e:
+            self.log("Link failed to send packet over socket %s" % e)
+            sleep(0.2)
+            if retry:
+                self.send(packet, retry=False)
