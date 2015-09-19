@@ -100,7 +100,6 @@ class BaseProtocol(threading.Thread):
         """some logic here to actually do something with the packet"""
         pass
 
-
 class PrintProtocol(BaseProtocol):
     def recv(self, packet, interface):
         self.node.log("Printing packet:", interface, packet)

@@ -9,7 +9,7 @@ import time
 import select
 from collections import defaultdict
 from queue import Queue, Empty
-from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
+from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 
 from protocols import SwitchProtocol, PrintProtocol, LoopbackFilter, StringFilter, DuplicateFilter
 
@@ -87,26 +87,26 @@ class HardLink(threading.Thread, BaseLink):
         # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
         threading.Thread.__init__(self)
         BaseLink.__init__(self, name=name)
-        self.__initsocket__(port=port)
-        self.log("starting...")
-
-    def __initsocket__(self, port=2016):
         self.port = port
+        self.log("starting...")
+        self.__initsocket__()
+
+    def __repr__(self):
+        return "<"+self.name+">"
+
+    def __initsocket__(self):
         self.net_socket = socket(AF_INET, SOCK_DGRAM)
         self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
         self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         self.net_socket.setblocking(0)
-        self.net_socket.bind(('', port))
-
-    def __repr__(self):
-        return "<"+self.name+">"
+        self.net_socket.bind(('', self.port))
 
     ### Runloop
 
     def run(self):
         """runloop that reads incoming packets off the interface into the inq buffer"""
-        self.log("real link established.")
+        self.log("ready to receive.")
         # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
         while self.keep_listening:
             try:
@@ -133,6 +133,113 @@ class HardLink(threading.Thread, BaseLink):
         addr = ('255.255.255.255', self.port)
         try:
             self.net_socket.sendto(packet, addr)
+        except Exception as e:
+            self.log("Link failed to send packet over socket %s" % e)
+            time.sleep(0.2)
+            if retry:
+                self.send(packet, retry=False)
+
+class IRCLink(threading.Thread, BaseLink):
+    def __init__(self, name='irc1', server='irc.freenode.net', port=6667, channel='##medusa', nick='bobbyTables'):
+        # HardLinks have to be run in a seperate thread
+        # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
+        threading.Thread.__init__(self)
+        BaseLink.__init__(self, name=name)
+        self.name = name
+        self.server = server
+        self.port = port
+        self.channel = channel
+        self.nick = nick if nick != 'bobbyTables' else 'bobbyTables'+str(random.randint(1, 1000))
+        self.log("starting...")
+        self.__connect__()
+        self.__joinchannel__()
+        self.log("irc channel connected.")
+
+    def __repr__(self):
+        return "<"+self.name+">"
+
+    def stop(self):
+        self.net_socket.setblocking(1)
+        self.net_socket.send(b"QUIT\r\n")
+        BaseLink.stop(self)
+
+    def __parse__(self, msg):
+        if b"PRIVMSG" in msg:
+            from_nick = msg.split(b"PRIVMSG ",1)[0].split(b"!")[0][1:]               # who sent the PRIVMSG
+            to_nick = msg.split(b"PRIVMSG ",1)[1].split(b" :",1)[0]                  # where did they send it
+            text = msg.split(b"PRIVMSG ",1)[1].split(b" :",1)[1].strip()             # what did it contain
+            return (text, from_nick)
+        elif msg.find(b"PING :",0,6) != -1:                                         # was it just a ping?
+            from_srv = msg.split(b"PING :")[1].strip()                              # the source of the PING
+            return ("PING", from_srv)
+        return ("","")
+
+    def __connect__(self):
+        self.log("connecting to server %s:%s..." % (self.server, self.port))
+        self.net_socket = socket(AF_INET, SOCK_STREAM)
+        self.net_socket.connect((self.server, self.port))
+        self.net_socket.setblocking(1)
+        self.net_socket.settimeout(2)
+        msg = self.net_socket.recv(4096)
+        while msg:
+            try:
+                msg = self.net_socket.recv(4096).strip()
+            except:
+                msg = None
+
+    def __joinchannel__(self):
+        self.log("joining channel %s as %s..." % (self.channel, self.nick))
+        nick = self.nick
+        self.net_socket.settimeout(10)
+        self.net_socket.send(('NICK %s\r\n' % nick).encode('utf-8'))
+        self.net_socket.send(('USER %s %s %s :%s\r\n' % (nick, nick, nick, nick)).encode('utf-8'))
+        self.net_socket.send(('JOIN %s\r\n' % self.channel).encode('utf-8'))
+        msg = self.net_socket.recv(4096)
+        while msg:
+            if b"Nickname is already in use" in msg:
+                self.nick += str(random.randint(1, 1000))
+                self.__joinchannel__()
+                return
+            elif b"JOIN" in msg:
+                break
+            # elif b"MOTD" not in msg:
+            #     print(msg)
+            try:
+                msg = self.net_socket.recv(4096).strip()
+            except:
+                msg = None
+
+    ### Runloop
+
+    def run(self):
+        """runloop that reads incoming packets off the interface into the inq buffer"""
+        self.log("ready to receive.")
+        # we use a runloop instead of synchronous recv so stopping the connection mid-recv is possible
+        self.net_socket.settimeout(0.5)
+        while self.keep_listening:
+            try:
+                packet = self.net_socket.recv(4096)
+            except:
+                packet = None
+            if packet:
+                packet, source = self.__parse__(packet)
+                if packet == "PING":
+                    self.net_socket.send(b'PONG ' + source + b'\r')
+                elif packet:
+                    
+                    for mac_addr, recv_queue in self.inq.items():
+                        # put the packet in that mac_addr recv queue
+                        recv_queue.put(packet)
+
+    ### IO
+
+    def send(self, packet, retry=True):
+        """send a packet down the line to the inteface"""
+        try:
+            # for each address listening to this link
+            for mac_addr, recv_queue in self.inq.items():
+                recv_queue.put(packet)
+            self.net_socket.send(('PRIVMSG %s :%s\r\n' % (self.channel, packet.decode())).encode('utf-8'))
         except Exception as e:
             self.log("Link failed to send packet over socket %s" % e)
             time.sleep(0.2)
@@ -222,14 +329,14 @@ if __name__ == "__main__":
 
 
     print("using a mix of real and vitual links to make a little network...")
-    ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), HardLink('en3', 2015), HardLink('en4', 2016))
+    ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), HardLink('en4', 2016), IRCLink('irc5'))
     nodes = (
         Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),
         Node([ls[0], ls[1]], 'r1', Protocol=SwitchProtocol),
         Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter, DuplicateFilter], Protocol=SwitchProtocol),
         Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter, StringFilter.match(b'red')], Protocol=SwitchProtocol),
-        Node([ls[3], ls[4]], 'end'),
+        Node([ls[5], ls[4]], 'end'),
     )
     [l.start() for l in ls]
     [n.start() for n in nodes]
