@@ -9,7 +9,7 @@ cd mesh-networking
 python3 node.py
 ```
 
-To simulate a larger, randomized network in one place, run:
+To simulate a larger network with random connections between nodes:
 ```bash
 python3 multinode.py
 ```
