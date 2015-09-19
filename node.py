@@ -28,7 +28,6 @@ class Node(threading.Thread):
         self.inq = defaultdict(Queue)
         self.filters = [LoopbackFilter(), UniqueFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the program
         self.program = Program(node=self)    # init and start the program (program that will be processing incoming packets)
-        self.program.start()
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -60,6 +59,7 @@ class Node(threading.Thread):
         """runloop that gets triggered by node.start()
         reads new packets off the link and feeds them to recv()
         """
+        self.program.start()
         while self.keep_listening:
             for interface in self.interfaces:
                 packet = interface.recv(self.mac_addr if not self.promiscuous else "00:00:00:00:00:00")
