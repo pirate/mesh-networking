@@ -140,15 +140,17 @@ class HardLink(threading.Thread, BaseLink):
                 self.send(packet, retry=False)
 
 class Node(threading.Thread):
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Protocol=PrintProtocol):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=(LoopbackFilter,), Protocol=PrintProtocol):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
         self.keep_listening = True
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
-        self.filters = Filters or [LoopbackFilter()]
+        self.inq = defaultdict(Queue)
+        self.filters = [F() for F in Filters]
         self.protocol = Protocol(node=self)
+        self.protocol.start()
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -171,6 +173,7 @@ class Node(threading.Thread):
 
     def stop(self):
         self.keep_listening = False
+        self.protocol.stop()
         self.join()
 
     ### Runloop
@@ -184,7 +187,7 @@ class Node(threading.Thread):
                 packet = interface.recv(self.mac_addr if not self.promiscuous else "00:00:00:00:00:00")
                 if packet:
                     self.recv(packet, interface)
-            time.sleep(0.01)
+                time.sleep(0.01)
         self.log("Stopped listening.")
 
     ### IO
@@ -195,7 +198,7 @@ class Node(threading.Thread):
             packet = f.tr(packet, interface)
         if packet:
             self.log("IN      ", str(interface).ljust(30), packet)
-            self.protocol.recv(packet, interface)
+            self.inq[interface].put(packet)
 
     def send(self, packet, interfaces=None):
         """write packet to given interfaces, default is broadcast to all interfaces"""
@@ -224,8 +227,8 @@ if __name__ == "__main__":
         Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),
         Node([ls[0], ls[1]], 'r1', Protocol=SwitchProtocol),
-        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter(), DuplicateFilter()], Protocol=SwitchProtocol),
-        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter(), StringFilter(b'red')], Protocol=SwitchProtocol),
+        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter, DuplicateFilter], Protocol=SwitchProtocol),
+        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter, StringFilter.match(b'red')], Protocol=SwitchProtocol),
         Node([ls[3], ls[4]], 'end'),
     )
     [l.start() for l in ls]
