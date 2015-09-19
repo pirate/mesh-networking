@@ -1,15 +1,85 @@
-class SwitchProtocol:
+from collections import defaultdict
+
+class BaseFilter:
+    @staticmethod
+    def tr(self, packet, interface):
+        return packet
+    @staticmethod
+    def tx(self, packet, interface):
+        return packet
+
+class DuplicateFilter(BaseFilter):
+    """filter sending/receiving duplicates of the same packet in a row"""
+    def __init__(self):
+        self.last_sent = defaultdict(str)
+        self.last_recv = defaultdict(str)
+
+    def tr(self, packet, interface):
+        if not packet or packet == self.last_recv[interface]:
+            return None
+        else:
+            self.last_recv[interface] = packet
+            return packet
+
+    def tx(self, packet, interface):
+        if not packet or packet == self.last_sent[interface]:
+            return None
+        else:
+            self.last_sent[interface] = packet
+            return packet
+
+class LoopbackFilter(BaseFilter):
+    """filter recieving copies of packets that the node just sent out"""
+    def __init__(self):
+        self.sent_hashes = defaultdict(int)
+
+    def tr(self, packet, interface):
+        if not packet:
+            return None
+        elif self.sent_hashes[hash(packet)] > 0:
+            self.sent_hashes[hash(packet)] -= 1
+            return None
+        else:
+            return packet
+
+    def tx(self, packet, interface):
+        if not packet:
+            return None
+        else:
+            self.sent_hashes[hash(packet)] += 1
+            return packet
+
+class StringFilter(BaseFilter):
+    """filter for packets that contain a pattern string"""
+    def __init__(self, pattern='', inverse=False):
+        self.pattern = pattern
+        self.inverse = inverse
+
+    def tr(self, packet, interface):
+        if not packet:
+            return None
+        if not self.inverse:
+            return packet if self.pattern in packet else None
+        else:
+            return packet if not self.pattern in packet else None 
+
+class PrintProtocol:
     def __init__(self, node):
         self.node = node
-        self.last_packet = None
 
-    def recv(self, packet, interface=None):
-        if packet == self.last_packet:
-            return
-        other_ifaces = [i for i in self.node.interfaces if i != interface]
-        self.node.log("SWITCH", interface.name+">>>>", other_ifaces)
+    def recv(self, packet, interface):
+        self.node.log("Printing packet:", packet)
+
+class SwitchProtocol:
+    def __init__(self, node, silent=False):
+        self.node = node
+        self.silent = silent
+
+    def recv(self, packet, interface):
+        other_ifaces = set(self.node.interfaces) - {interface}
+        if not self.silent:
+            self.node.log("SWITCH  ", (str(interface)+" >>>> <"+','.join(i.name for i in other_ifaces)+">").ljust(30), packet)
         self.node.send(packet, interfaces=other_ifaces)
-        self.last_packet = packet
 
 class MeshProtocol:
     def __init__(self):

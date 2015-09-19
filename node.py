@@ -11,7 +11,7 @@ from collections import defaultdict
 from queue import Queue, Empty
 from socket import socket, AF_INET, SOCK_DGRAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
 
-from protocols import SwitchProtocol
+from protocols import SwitchProtocol, PrintProtocol, LoopbackFilter, StringFilter, DuplicateFilter
 
 class BaseLink:
     broadcast_addr = "00:00:00:00:00:00:00"
@@ -106,8 +106,8 @@ class HardLink(threading.Thread, BaseLink):
 
     def run(self):
         """runloop that reads incoming packets off the interface into the inq buffer"""
-        self.log("ready to receive packets.")
-        # we use a runloop instead of synchronous recv so stopping the node is possible mid-recv
+        self.log("real link established.")
+        # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
         while self.keep_listening:
             try:
                 read_ready, w, x = select.select([self.net_socket], [], [], 0.2)
@@ -139,20 +139,16 @@ class HardLink(threading.Thread, BaseLink):
             if retry:
                 self.send(packet, retry=False)
 
-
-
 class Node(threading.Thread):
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Protocol=None):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Protocol=PrintProtocol):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
         self.keep_listening = True
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
-        if Protocol:
-            self.protocol = Protocol(node=self)
-        else:
-            self.protocol = None
+        self.filters = Filters or [LoopbackFilter()]
+        self.protocol = Protocol(node=self)
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -193,51 +189,57 @@ class Node(threading.Thread):
 
     ### IO
         
-    def recv(self, packet, interface=None):
-        self.log("IN  ", str(interface).ljust(25), packet)
-        if self.protocol:
+    def recv(self, packet, interface):
+        """process a packet coming off the incoming packet buffer"""
+        for f in self.filters:
+            packet = f.tr(packet, interface)
+        if packet:
+            self.log("IN      ", str(interface).ljust(30), packet)
             self.protocol.recv(packet, interface)
 
     def send(self, packet, interfaces=None):
         """write packet to given interfaces, default is broadcast to all interfaces"""
         interfaces = interfaces or self.interfaces
-        self.log("OUT ", ("<"+",".join([i.name for i in interfaces])+">").ljust(25), packet)
-        try:
-            for interface in interfaces:
+
+        for interface in interfaces:
+            for f in self.filters:
+                packet = f.tx(packet, interface)
+            if packet:
+                self.log("OUT     ", ("<"+",".join(i.name for i in interfaces)+">").ljust(30), packet)
                 interface.send(packet)
-        except TypeError:
-            # fail gracefully if its only a single interface and not a list of interfaces
-            interfaces.send(packet)
 
 if __name__ == "__main__":
     interface = "en0"
     if len(sys.argv) > 1:
         interface = sys.argv[1]
-    link = HardLink(interface, 2016)
-    virt = VirtualLink()
-    
-    startpoint = Node([link], ' start')
-    switch = Node([link, virt], 'switch', Protocol=SwitchProtocol)
-    endpoint = Node([virt], '   end')
 
-    link.start()
-    virt.start()
-    
-    startpoint.start()
-    switch.start()
-    endpoint.start()
+    #         /-right-1-right2- \3
+    # start <0                   end
+    #         \--left-2-left2-- /4
 
+
+    print("using a mix of real and vitual links to make a little network...")
+    ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), HardLink('en3', 2015), HardLink('en4', 2016))
+    nodes = (
+        Node([ls[0]], 'start'),
+        Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),
+        Node([ls[0], ls[1]], 'r1', Protocol=SwitchProtocol),
+        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter(), DuplicateFilter()], Protocol=SwitchProtocol),
+        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter(), StringFilter(b'red')], Protocol=SwitchProtocol),
+        Node([ls[3], ls[4]], 'end'),
+    )
+    [l.start() for l in ls]
+    [n.start() for n in nodes]
+    
     try:
         while True:
-            message = input(">")
-            startpoint.send(bytes(message, 'UTF-8'))
+            print("------------------------------")
+            message = input("[start] OUT:".ljust(49))
+            nodes[0].send(bytes(message, 'UTF-8'))
             time.sleep(0.5)
 
     except (EOFError, KeyboardInterrupt):
-        startpoint.stop()
-        switch.stop()
-        endpoint.stop()
-        link.stop()
-        virt.stop()
+        [n.stop() for n in nodes]
+        [l.stop() for l in ls]
         print("EXITING")
         exit(0)
