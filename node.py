@@ -46,7 +46,7 @@ class VirtualLink:
 
     def log(self, *args):
         """stdout and stderr for the link"""
-        print("%s %s" % (str(self).ljust(6), " ".join([str(x) for x in args])))
+        print("%s %s" % (str(self).ljust(8), " ".join([str(x) for x in args])))
 
     ### Runloop
 
@@ -285,7 +285,7 @@ class Node(threading.Thread):
 
     def log(self, *args):
         """stdout and stderr for the node"""
-        print("%s %s" % (str(self).ljust(6), " ".join([str(x) for x in args])))
+        print("%s %s" % (str(self).ljust(8), " ".join([str(x) for x in args])))
 
     def stop(self):
         self.keep_listening = False
@@ -315,7 +315,7 @@ class Node(threading.Thread):
             packet = f.tr(packet, interface)
         if packet:
             # if the packet wasn't dropped by a filter, log the recv and place it in the interface's inq
-            self.log("IN      ", str(interface).ljust(30), packet)
+            self.log("IN      ", str(interface).ljust(30), packet.decode())
             self.inq[interface].put(packet)
 
     def send(self, packet, interfaces=None):
@@ -327,16 +327,17 @@ class Node(threading.Thread):
                 packet = f.tx(packet, interface)  # run outgoing packet through the filters
             if packet:
                 # if not dropped, log the transmit and pass it to the interface's send method
-                self.log("OUT     ", ("<"+",".join(i.name for i in interfaces)+">").ljust(30), packet)
+                self.log("OUT     ", ("<"+",".join(i.name for i in interfaces)+">").ljust(30), packet.decode())
                 interface.send(packet)
 
 if __name__ == "__main__":
-    print("Using a mix of real and vitual links to make a little network...")
-    print(r""" /[r1]<--vlan1-->[r2]<---vlan4---\
-    [start]-en0                                [end]
-               \[l1]<--vlan2-->[l2]<-irc3:irc5-/""")
+    print("Using a mix of real and vitual links to make a little network...\n")
+    print("          /[r1]<--vlan1-->[r2]<----vlan4---\\")
+    print("[start]-en0                                [end]")
+    print("          \[l1]<--vlan2-->[l2]<--irc3:irc5-/\n")
 
     ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), HardLink('en4', 2016), IRCLink('irc5'))
+    # ls = (HardLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), VirtualLink('irc3'), HardLink('en4', 2016), VirtualLink('irc5'))
     nodes = (
         Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Protocol=SwitchProtocol),
@@ -351,7 +352,7 @@ if __name__ == "__main__":
     try:
         while True:
             print("------------------------------")
-            message = input("[start] OUT:".ljust(49))
+            message = input("[start]  OUT:".ljust(49))
             nodes[0].send(bytes(message, 'UTF-8'))
             time.sleep(0.5)
 
