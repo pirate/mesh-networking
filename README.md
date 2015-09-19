@@ -5,13 +5,13 @@ Quickstart Guide:
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
 # run several of these in different terminal windows, or on different computers
-# by default, they will talk to each other over en0
-sudo python3 node.py
+# they will attempt to communicate over all network interfaces
+python3 node.py
 ```
-Or, if you want to simulate a small network in one place, run:
 
+To simulate a larger, randomized network in one place, run:
 ```bash
-sudo python3 multinode.py
+python3 multinode.py
 ```
 
 
