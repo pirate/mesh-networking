@@ -1,14 +1,15 @@
-import socketio
-import eventlet
-from flask import Flask, render_template
+from flask import Flask
+from flask_sockets import Sockets
 
-sio = socketio.Server()
+
 app = Flask(__name__)
+sockets = Sockets(app)
 
-@sio.on('chat message', namespace="/chat")
-def test(sid, data):
-    print('test', sid, data)
-    sio.emit('chat message', data)
+@sockets.route('/echo')
+def echo_socket(ws):
+    while True:
+        message = ws.receive()
+        ws.send(message)
 
 @app.route('/')
 def index():
@@ -17,7 +18,4 @@ def index():
 
 if __name__ == '__main__':
     # wrap Flask application with socketio's middleware
-    app = socketio.Middleware(sio, app)
-
-    # deploy as an eventlet WSGI server
-    eventlet.wsgi.server(eventlet.listen(('', 80)), app)
+    app.start()

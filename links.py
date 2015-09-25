@@ -309,3 +309,11 @@ class RawSocketLink(threading.Thread, VirtualLink):
             sleep(0.2)
             if retry:
                 self.send(packet, retry=False)
+
+
+class MultiPeerConnectivityLink(threading.Thread, VirtualLink):
+    """This link sends traffic over Bluetooth to Apple devices using the MultiPeerConnectivity framework introduced in iOS 7.
+    """
+
+    def __init__(self):
+        raise NotImplementedError()

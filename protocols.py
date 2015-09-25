@@ -15,7 +15,7 @@ class Frame:
         return '[%s>%s %s:%s]' % (self.source, self.dest, self.protocol, self.data.__repr__())
 
     def __str__(self):
-        return self.source+self.dest+str(self.protocol)+str(self.data)
+        return self.dest+self.source+str(self.protocol)+str(self.data)
 
 class ARP:
     def __init__(self, asker, question):
