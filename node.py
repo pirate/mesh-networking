@@ -46,7 +46,7 @@ class Node(threading.Thread):
 
     def log(self, *args):
         """stdout and stderr for the node"""
-        print("%s %s" % (str(self).ljust(8), " ".join([str(x) for x in args])))
+        print("%s %s" % (str(self).ljust(8), " ".join(str(x) for x in args)))
 
     def stop(self):
         self.keep_listening = False
