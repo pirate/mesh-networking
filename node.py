@@ -13,9 +13,9 @@ from programs import Switch, Printer
 from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 
 class Node(threading.Thread):
-    """a Node represents a computer.  node.interfaces is a list of the network links it's connected to.
-        Nodes process incoming traffic through it's filters, then places it in its inq for its Program to handle.
-        Programs process packets off the node's incoming queue, then send responses out the node's outbound filters, 
+    """a Node represents a computer.  node.interfaces contains the list of network links the node is connected to.
+        Nodes process incoming traffic through their filters, then place packets in their inq for their Program to handle.
+        Programs process packets off the node's incoming queue, then send responses out through node's outbound filters, 
         and finally out to the right network interface.
     """
     def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=Printer):
