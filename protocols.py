@@ -26,6 +26,7 @@ class ARP:
         return '{%s? > %s}' % (self.question, self.asker)
 
     def __str__(self):
+
         return self.asker+self.question
 
 class ICMP:
@@ -40,4 +41,5 @@ class ICMP:
     def __str__(self):
         return self.asker+self.question
 
+# izqui's mockup of a JSON-based mesh protcol:
 # [c9:f6:24:4b:1e:6e] IN  ('{"id":"1f5ff4bc2416cf63f03bdb14242710be63da84c4","origin_peer":{"id":"B","address":"10.0.5.33:3003","connected_peers":[{"id":"A","address":"10.0.5.33:3001"},{"id":"C","address":"10.0.5.33:7666","connected_peers":[{"id":"D","address":"10.0.5.33:1111"}]}]},"destination_id":""}', ('10.0.5.33', 53934))

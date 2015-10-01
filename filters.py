@@ -7,6 +7,8 @@ class BaseFilter:
     """Filters work just like iptables filters, they are applied in order to all incoming and outgoing packets
        Filters can return a modified packet, or None to drop it
     """
+
+    # stateless filters use classmethods, stateful filters should add an __init__
     @classmethod
     def tr(self, packet, interface):
         """tr is shorthand for receive filter method
@@ -55,8 +57,7 @@ class LoopbackFilter(BaseFilter):
         # if we send it twice on two ifaces, we can ignore two received copies
 
     def tr(self, packet, interface):
-        if not packet:
-            return None
+        if not packet: return None
         elif self.sent_hashes[hash(packet)] > 0:
             self.sent_hashes[hash(packet)] -= 1
             return None
@@ -64,8 +65,7 @@ class LoopbackFilter(BaseFilter):
             return packet
 
     def tx(self, packet, interface):
-        if not packet:
-            return None
+        if not packet: return None
         else:
             self.sent_hashes[hash(packet)] += 1
             return packet
@@ -80,26 +80,25 @@ class UniqueFilter(BaseFilter):
         return hashlib.md5(string.encode('utf-8')).hexdigest()
 
     def tr(self, packet, interface):
-        if not packet:
-            return None
-        if b"HASH" in packet[:5]:
-            if packet[5:37] in self.seen:
-                return None
+        if not packet: return None
+        if b"HASH:" == packet[:5]:
+            packet_uuid = packet[5:37]
+            if packet_uuid in self.seen:
+                return None                     # we've already seen this packet's uuid, drop this duplicate
             else:
-                self.seen.add(packet[5:37])
+                self.seen.add(packet_uuid)      # otherwise it's new, pass it on and add to set of already seen
                 return packet
 
     def tx(self, packet, interface):
-        if not packet:
-            return None
-        if b"HASH:" in packet[:5]:
-            packet_hash = packet[5:37]
-            self.seen.add(packet_hash)
+        if not packet: return None
+        if b"HASH:" == packet[:5]:
+            packet_uuid = packet[5:37]
+            self.seen.add(packet_uuid)
         else:
             # packet was created from this node, generate a unique id and prepend it
-            packet_hash = self.__md5__(self.our_id + str(time.time()))
-            self.seen.add(packet_hash)
-            return b"HASH:"+bytes(packet_hash, 'utf-8')+packet
+            packet_uuid = self.__md5__(self.our_id + str(time.time()))
+            self.seen.add(packet_uuid)
+            return b"HASH:" + bytes(packet_uuid, 'utf-8') + packet
 
 
 class StringFilter(BaseFilter):
@@ -107,8 +106,7 @@ class StringFilter(BaseFilter):
         Node('mynode', Filters=[StringFilter.match('pattern'), ...])
     """
     def tr(self, packet, interface):
-        if not packet:
-            return None
+        if not packet: return None
         if not self.inverse:
             return packet if self.pattern in packet else None
         else:
@@ -117,9 +115,10 @@ class StringFilter(BaseFilter):
     @classmethod
     def match(cls, pattern, inverse=False):
         """Call this before passing to node to set up this stateless but dynamic filter."""
-        cls.pattern = pattern
-        cls.inverse = inverse
-        return cls
+        class DefinedStringFilter(cls):
+            pattern = pattern
+            inverse = inverse
+        return DefinedStringFilter
 
     @classmethod
     def dontmatch(cls, pattern):
