@@ -1,6 +1,8 @@
 from collections import defaultdict
 from queue import Empty
 
+# TODO: Replace most of this file with Scapy's wonderful packet construction and deconstruction system
+
 class Frame:
     """an ethernet frame"""
     def __init__(self, source_mac, dest_mac, protocol=None, data=''):
