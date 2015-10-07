@@ -116,8 +116,8 @@ if __name__ == "__main__":
         Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Program=Switch),
         Node([ls[0], ls[1]], 'r1', Program=Switch),
-        Node([ls[2], ls[3]], 'l2', Filters=[LoopbackFilter, DuplicateFilter], Program=Switch),              # l2 wont forward two of the same packet in a row
-        Node([ls[1], ls[4]], 'r2', Filters=[LoopbackFilter, StringFilter.match(b'red')], Program=Switch),   # r2 wont forward any packet unless it contains the string 'red'
+        Node([ls[2], ls[3]], 'l2', Filters=[DuplicateFilter], Program=Switch),              # l2 wont forward two of the same packet in a row
+        Node([ls[1], ls[4]], 'r2', Filters=[StringFilter.match(b'red')], Program=Switch),   # r2 wont forward any packet unless it contains the string 'red'
         Node([ls[5], ls[4]], 'end'),
     )
     assert all([l.start() for l in ls]),    "Some links failed to start."
