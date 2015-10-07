@@ -1,6 +1,3 @@
-from collections import defaultdict
-from queue import Empty
-
 # TODO: Replace most of this file with Scapy's wonderful packet construction and deconstruction system
 
 class Frame:
