@@ -3,15 +3,14 @@ from time import sleep
 from queue import Empty
 
 class BaseProgram(threading.Thread):
-    """Represents a program running on a Node that responds to incoming packets.
-    They serve to processes and route incoming traffic in a seperate thread."""
+    """Represents a program running on a Node that interprets and responds to incoming packets."""
     def __init__(self, node):
         threading.Thread.__init__(self)
         self.keep_listening = True
         self.node = node
 
     def run(self):
-        """runloop that processes packets off the node's input queue"""
+        """runloop that reads packets off the node's incoming packet buffer (node.inq)"""
         while self.keep_listening:
             for interface in self.node.interfaces:
                 try:
@@ -24,13 +23,13 @@ class BaseProgram(threading.Thread):
         self.join()
 
     def recv(self, packet, interface):
-        """some logic here to actually do something with the packet"""
+        """overload this and put logic here to actually do something with the packet"""
         pass
 
 class Printer(BaseProgram):
     """A simple program to just print incoming packets to the console."""
     def recv(self, packet, interface):
-        sleep(0.2)
+        sleep(0.2)  # nicety so that printers print after all the debug statements
         self.node.log(("PRINTER  "+str(interface)).ljust(39), packet.decode())
 
 class Switch(BaseProgram):
