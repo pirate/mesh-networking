@@ -55,7 +55,8 @@ class VirtualLink:
         # if threaded, kill threads before going down
         if hasattr(self, 'join'):
             self.join()
-        self.log("went down.")
+        self.log("Went down.")
+        return True
 
     ### IO
 
@@ -234,81 +235,28 @@ class IRCLink(threading.Thread, VirtualLink):
 
     def send(self, packet, retry=True):
         """send a packet down the line to the inteface"""
-        if self.keep_listening:
-            try:
-                # (because the IRC server sees this link as 1 connection no matter how many nodes use it, it wont send enough copies of the packet back)
-                # for each node listening to this link object locally
-                for mac_addr, recv_queue in self.inq.items():
-                    recv_queue.put(packet) # put the packet directly in their in queue
-                # then send it down the wire to the IRC channel
-                self.net_socket.send(('PRIVMSG %s :%s\r\n' % (self.channel, packet.decode())).encode('utf-8'))
-            except Exception as e:
-                self.log("Link failed to send packet over socket %s" % e)
-                sleep(0.2)
-                if retry:
-                    self.send(packet, retry=False)
-        else:
+        if not self.keep_listening:
             self.log('is down.')
+            return
 
-class RawSocketLink(threading.Thread, VirtualLink):
-    """This link sends all traffic as BROADCAST UDP packets on all physical ifaces.
-    Connect nodes on two different laptops to a UDPLink() with the same port and they will talk over wifi or ethernet.
-    """
-
-    def __init__(self, iface="en0"):
-        # UDPLinks have to be run in a seperate thread
-        # they rely on the infinite run() loop to read packets out of the socket, which would block the main thread
-        import dnet
-        threading.Thread.__init__(self)
-        VirtualLink.__init__(self, name=name)
-        self.iface = iface
-        self.log("starting...")
-        self.__initsocket__()
-
-    def __repr__(self):
-        return "<"+self.name+">"
-
-    def __initsocket__(self):
-        """bind to the datagram socket (UDP), and enable BROADCAST mode"""
-        datalink = dnet.eth(self.iface)
-        h = datalink.get().encode('hex_codec')
-        mac = ':'.join([h[i:i+2] for i in range(0, len(h), 2)])
-        print('Raw Socket on %s [%s] connected.' % (iface, mac))
-        self.datalink = datalink
-
-    ### Runloop
-
-    def run(self):
-        """runloop that reads incoming packets off the interface into the inq buffer"""
-        self.log("ready to receive.")
-        # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
-        while self.keep_listening:
-            try:
-                read_ready, w, x = select.select([self.net_socket], [], [], 0.01)
-            except Exception:
-                # catch timeouts
-                r = []
-            if read_ready:
-                packet, addr = read_ready[0].recvfrom(4096)
-                if addr[1] == self.port:
-                    # for each address listening to this link
-                    for mac_addr, recv_queue in self.inq.items():
-                        recv_queue.put(packet)  # put packet in node's recv queue
-                else:
-                    pass  # not meant for us, it was sent to a different port
-
-    ### IO
-
-    def send(self, packet, retry=True):
-        """send a packet down the line to the inteface"""
-        addr = ('255.255.255.255', self.port)  # 255. is the broadcast IP for UDP
         try:
-            self.net_socket.sendto(packet, addr)
+            # (because the IRC server sees this link as 1 connection no matter how many nodes use it, it wont send enough copies of the packet back)
+            # for each node listening to this link object locally
+            for mac_addr, recv_queue in self.inq.items():
+                recv_queue.put(packet) # put the packet directly in their in queue
+            # then send it down the wire to the IRC channel
+            self.net_socket.send(('PRIVMSG %s :%s\r\n' % (self.channel, packet.decode())).encode('utf-8'))
         except Exception as e:
             self.log("Link failed to send packet over socket %s" % e)
             sleep(0.2)
             if retry:
                 self.send(packet, retry=False)
+
+class RawSocketLink(threading.Thread, VirtualLink):
+    """This link uses tun/tap interfaces to send and receive packets directly at the ethernet level"""
+
+    def __init__(self):
+        raise NotImplementedError()
 
 
 class MultiPeerConnectivityLink(threading.Thread, VirtualLink):

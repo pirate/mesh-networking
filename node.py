@@ -12,7 +12,7 @@ from links import VirtualLink, UDPLink, IRCLink
 from programs import Switch, Printer
 from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 
-# Nodes connect to each other over links.  The node has a runloop that pulls packets off the link's incoming packet Queue, 
+# Nodes connect to each other over links.  The node has a runloop that pulls packets off the link's incoming packet Queue,
 # runs them through its list of filters, then places it in the nodes incoming packet queue for that interface node.inq.
 # the Node's Program is has a seperate runloop in a different thread that is constantly calling node.inq.get().
 # The program does something with the packet (like print it to the screen, or reply with "ACK"), and sends any outgoing responses
@@ -26,7 +26,7 @@ from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 class Node(threading.Thread):
     """a Node represents a computer.  node.interfaces contains the list of network links the node is connected to.
         Nodes process incoming traffic through their filters, then place packets in their inq for their Program to handle.
-        Programs process packets off the node's incoming queue, then send responses out through node's outbound filters, 
+        Programs process packets off the node's incoming queue, then send responses out through node's outbound filters,
         and finally out to the right network interface.
     """
     def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=Printer):
@@ -37,8 +37,8 @@ class Node(threading.Thread):
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
         self.inq = defaultdict(Queue)
-        self.filters = [LoopbackFilter(), UniqueFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the program
-        self.program = Program(node=self)    # init and start the program (program that will be processing incoming packets)
+        self.filters = [LoopbackFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the program
+        self.program = Program(node=self) if Program else None    # init the program that will be processing incoming packets
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -61,7 +61,7 @@ class Node(threading.Thread):
 
     def stop(self):
         self.keep_listening = False
-        self.program.stop()
+        if self.program: self.program.stop()
         self.join()
         return True
 
@@ -71,7 +71,7 @@ class Node(threading.Thread):
         """runloop that gets triggered by node.start()
         reads new packets off the link and feeds them to recv()
         """
-        self.program.start()
+        if self.program: self.program.start()
         while self.keep_listening:
             for interface in self.interfaces:
                 packet = interface.recv(self.mac_addr if not self.promiscuous else "00:00:00:00:00:00")
@@ -110,18 +110,23 @@ if __name__ == "__main__":
     print("[start]-en0                                [end]")
     print("          \[l1]<--vlan2-->[l2]<--irc3:irc5-/\n")
 
-    ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), UDPLink('en4', 2016), IRCLink('irc5'))          # slow, but impressive to connect over IRC
-    # ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), VirtualLink('irc3'), UDPLink('en4', 2016), VirtualLink('irc5'))    # faster setup for quick testing
+    # ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), UDPLink('en4', 2016), IRCLink('irc5'))          # slow, but impressive to connect over IRC
+    ls = (UDPLink('en0', 2010), VirtualLink('vl1'), VirtualLink('vl2'), UDPLink('irc3', 2013), UDPLink('en4', 2014), UDPLink('irc5', 2013))    # faster setup for quick testing
     nodes = (
-        Node([ls[0]], 'start'),
+        Node([ls[0]], 'start', Program=None),
         Node([ls[0], ls[2]], 'l1', Program=Switch),
         Node([ls[0], ls[1]], 'r1', Program=Switch),
         Node([ls[2], ls[3]], 'l2', Filters=[DuplicateFilter], Program=Switch),              # l2 wont forward two of the same packet in a row
         Node([ls[1], ls[4]], 'r2', Filters=[StringFilter.match(b'red')], Program=Switch),   # r2 wont forward any packet unless it contains the string 'red'
         Node([ls[5], ls[4]], 'end'),
     )
-    assert all([l.start() for l in ls]),    "Some links failed to start."
-    assert all([n.start() for n in nodes]), "Some nodes failed to start."
+    [l.start() for l in ls]
+    [n.start() for n in nodes]
+    
+    print('\n', nodes)
+    print("l2 wont forward two of the same packet in a row.")
+    print("r2 wont forward any packet unless it contains the string 'red'.")
+    print("Experiment by typing packets for [start] to send out, and seeing if they make it to the [end] node.")
     
     try:
         while True:
@@ -130,9 +135,6 @@ if __name__ == "__main__":
             nodes[0].send(bytes(message, 'UTF-8'))
             time.sleep(0.5)
 
-    except (EOFError, KeyboardInterrupt):
-        # CTRL-D, CTRL-C
-        print ("Not all", "All")[all([n.stop() for n in nodes])] + " nodes stopped cleanly."
-        print ("Not all", "All")[all([l.stop() for l in ls])]    + " links stopped cleanly."
-        print("EXITING")
-        exit(0)
+    except (EOFError, KeyboardInterrupt):   # CTRL-D, CTRL-C
+        print(("All" if all([n.stop() for n in nodes]) else 'Not all') + " nodes stopped cleanly.")
+        print(("All" if all([l.stop() for l in ls]) else 'Not all')    + " links stopped cleanly.")

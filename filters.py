@@ -115,9 +115,11 @@ class StringFilter(BaseFilter):
     @classmethod
     def match(cls, pattern, inverse=False):
         """Call this before passing to node to set up this stateless but dynamic filter."""
+        string_pattern = pattern
+        invert_search = inverse
         class DefinedStringFilter(cls):
-            pattern = pattern
-            inverse = inverse
+            pattern = string_pattern
+            inverse = invert_search
         return DefinedStringFilter
 
     @classmethod
