@@ -48,6 +48,7 @@ class VirtualLink:
     def start(self):
         """all links need to have a start() method because threaded ones use it start their runloops"""
         self.log("ready.")
+        return True
 
     def stop(self):
         """all links also need stop() to stop their runloops"""

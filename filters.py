@@ -94,11 +94,12 @@ class UniqueFilter(BaseFilter):
         if b"HASH:" == packet[:5]:
             packet_uuid = packet[5:37]
             self.seen.add(packet_uuid)
+            return packet
         else:
             # packet was created from this node, generate a unique id and prepend it
-            packet_uuid = self.__md5__(self.our_id + str(time.time()))
+            packet_uuid = self.__md5__(self.our_id + str(interface) + str(time.time()))
             self.seen.add(packet_uuid)
-            return b"HASH:" + bytes(packet_uuid, 'utf-8') + packet
+            return b"HASH:" + bytes(packet_uuid, 'utf-8') + b'; ' + packet
 
 
 class StringFilter(BaseFilter):

@@ -7,7 +7,8 @@ import random
 
 from node import Node
 from links import UDPLink, VirtualLink, IRCLink
-from programs import Printer, Switch 
+from programs import Printer, Switch
+from filters import UniqueFilter
 
 def hops(node1, node2):
     """returns # of hops it takes to get from node1 to node2, 1 means they're on the same link"""
@@ -34,7 +35,7 @@ def eigenvalue(nodes, node=None):
         return len([1 for n in nodes if hops(node, n)])
 
 def even_eigen_randomize(nodes, links, min_eigen=1):
-    print("Introducing %s antisocial nodes to the party." % len(nodes))
+    print("Linking %s together randomly." % len(nodes))
     for node in nodes:
         while len(node.interfaces) < ((desired_min_eigenvalue - random.randint(0, 3)) or 1):
             node.interfaces.append(random.choice(tuple(set(links) - set(node.interfaces))))
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     links += [ VirtualLink("vl%s" % (x+1)) for x in range(num_links) ]
 
     print('Creating Nodes...')
-    nodes = [ Node(None, "n%s" % x, Program=random.choice((Printer, Switch))) for x in range(num_nodes) ]
+    nodes = [ Node(None, "n%s" % x, Filters=[UniqueFilter], Program=random.choice((Printer, Switch))) for x in range(num_nodes) ]
 
     if randomize:
         desired_min_eigenvalue = 4 if 4 < num_links else len(links)-2 # must be less than the total number of nodes!!!
@@ -138,8 +139,8 @@ if __name__ == "__main__":
         if not intentional:
             traceback.print_exc()
         try:
-            [n.stop() for n in nodes]
-            [l.stop() for l in links]
+            assert all([n.stop() for n in nodes]), 'Some nodes failed to stop.'
+            assert all([l.stop() for l in links]), 'Some links failed to stop.'
         except Exception as e:
             traceback.print_exc()
             intentional = False
