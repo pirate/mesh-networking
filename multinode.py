@@ -22,7 +22,7 @@ def hops(node1, node2):
         return 0
 
 def linkmembers(nodes, link):
-    return [node for node in nodes if link in node.interfaces]
+    return [n for n in nodes if link in n.interfaces]
 
 def eigenvalue(nodes, node=None):
     """
@@ -40,14 +40,6 @@ def even_eigen_randomize(nodes, links, min_eigen=1):
         while len(node.interfaces) < ((desired_min_eigenvalue - random.randint(0, 3)) or 1):
             node.interfaces.append(random.choice(tuple(set(links) - set(node.interfaces))))
 
-
-help_str = """Type a nodelabel or linkname to send messages.
-        e.g. [$]:n35
-             [n35]<en1> ∂5:hi
-        or
-             [$]:l5
-             <l5>(3) [n1,n4,n3]:whats up"""
-
 def ask(type, question, fallback=None):
     value = input(question)
     if type == bool:
@@ -59,6 +51,13 @@ def ask(type, question, fallback=None):
         return type(value)
     except Exception:
         return fallback
+
+help_str = """Type a nodelabel or linkname to send messages.
+        e.g. [$]:n35
+             [n35]<en1> ∂5:hi
+        or
+             [$]:l5
+             <l5>(3) [n1,n4,n3]:whats up"""
 
 if __name__ == "__main__":
     import sys
@@ -148,77 +147,82 @@ if __name__ == "__main__":
         raise SystemExit(int(not intentional))
 
 """
+ETHERNET CABLE DUPLEXING:
 
-   ^      \/
-   |      |
-   |      |
-   \      /
-    \    /
-     \  /
-      |
-       |
-      |
-       |
-      |
-       |
-      |
-       |        < 4 bits can be sent in one clock tick
-      |                 - 2b up
-       |                - 2b down
-      |
-       |          or
-      |
-       |                - 1b up and 1b down in one tick
-
-
-two cables, each cable can transmit one packet per tick
-in order to switch transmission directions there is a
-small latency between ticks.
-
-this is a graph of the cable's state over time (time increases going down)
-^ means the traffic is going up; , means it's going down
-
-|^||^| time = 2 ticks; up, down = 2,2
-------       1 tick delay for each direction switch
-|,||,|
-------
-|^||^|
-------
-|,||,|
-------       wasted tick is the time it takes the line to empty the buffer holding the packet
-|^||^|
-------
-|,||,|
-------
-|^||^|
-------
-|,||,|
-------
-|^||^|
-
-|,||^| time = 2 ticks; up, down = 2,2
-|,||^|       no delay
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|       meanwhile, there are no --pauses-- because packets can be streamed one after another, crammed in tight
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-|,||^|
-
-thus, in the same amount of time, a full-duplex setup where up and down are split
-on seperate wires will always beat two single time-sharing duplex cables
-
-of course, the wasted time will be much lower on a short line (probably in the <1ms range), but on longer cables
-it can probably grow to >1ms, which really slows down an ethernet cable trying to run at 100mbps.
+least efficient (10BASE-2 half-duplex):
+    
+       ^      \/    single line half-duplex with tr and tx taking turns
+       ^      ,
+       ^      ,
+       ^      ,
+        ^    ,
+         ^  ,
+          ^         1 tick tx
+           ,        1 tick tr
+          ^
+           ,
+          ^
+           ,
+          ^
+           ,        4 bits can be sent in one clock tick
+          ^         2b up
+           ,        2b down
+          ^
+           ,
+          ^
+           ,
 
 
- """
+medium efficieny (1000BASE-T half-duplex):
+    two lines, each line can transmit one packet per tick
+    in order to switch transmission directions there is a
+    small latency between ticks.
+
+    this is a graph of the cable's state over time (time increases going down)
+    ^ means the traffic is going up; , means it's going down
+
+    |^||^|          |^||^| = 1 tick where both cables are tx-ing
+    ------          ------ = 1 tick delay for each direction switch
+    |,||,|          |,||,| = 1 tick where both cables are tr-ing
+    ------
+    |^||^|
+    ------
+    |,||,|
+    ------          wasted tick is the time it takes the line to empty the buffer holding the packet
+    |^||^|
+    ------
+    |,||,|
+    ------
+    |^||^|
+    ------
+    |,||,|
+    ------
+    |^||^|
+
+highest efficiency (100BASE-TX full-duplex):
+    |,||^|       one line is pure tx, and one is pure tr
+    |,||^|       no direction switch delay
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|       there are no --pauses-- because packets can be streamed one after another, crammed in tight
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+    |,||^|
+
+    thus, in the same amount of time, a full-duplex setup where up and down are split
+    on seperate wires will always beat two single time-sharing half-duplex cables
+
+    of course, the wasted time will be much lower on a short line (probably in the <1ms range), but on longer cables
+    it can probably grow to >1ms, which really slows down an ethernet cable trying to run at 100mbps.
+
+Newer models of routers, hubs and switches can automatically switch between a "straight-through" and a "crossover" set-up, doing away with the need to use two different Cat5 cables.
+"""
