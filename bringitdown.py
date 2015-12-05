@@ -1,6 +1,6 @@
 # DDoS any WiFi network or ethernet interface you're connected do, drowning out other people's legitimate traffic with spam malformed packets
 
-# brew install libdnet
+# brew install libdnet; pip install dnet
 # sudo python bringitdown.py
 
 import dnet
