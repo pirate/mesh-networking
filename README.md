@@ -1,6 +1,8 @@
 Quickstart Guide:
 ================
 
+[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ```bash
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
