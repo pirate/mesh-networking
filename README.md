@@ -1,7 +1,7 @@
 Quickstart Guide:
 ================
 
-[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
 
 ```bash
 git clone https://github.com/pirate/mesh-networking
