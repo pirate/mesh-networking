@@ -12,6 +12,12 @@ from links import VirtualLink, UDPLink, IRCLink
 from programs import Switch, Printer
 from filters import LoopbackFilter, DuplicateFilter, UniqueFilter, StringFilter
 
+# Physical Layer (copper, fiber, audio, wireless)
+# Link Layer (ethernet, ARP, PPP): links.py
+# Network Layer (IPv4, IPv6, ICMP, MeshP): scapy
+# Transport Layer (TCP, UDP, SCTP): scapy
+
+
 # Nodes connect to each other over links.  The node has a runloop that pulls packets off the link's incoming packet Queue,
 # runs them through its list of filters, then places it in the nodes incoming packet queue for that interface node.inq.
 # the Node's Program is has a seperate runloop in a different thread that is constantly calling node.inq.get().
@@ -29,7 +35,7 @@ class Node(threading.Thread):
         Programs process packets off the node's incoming queue, then send responses out through node's outbound filters,
         and finally out to the right network interface.
     """
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=Printer):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=None):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
@@ -37,8 +43,8 @@ class Node(threading.Thread):
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self.__genaddr__(6, 2)
         self.inq = defaultdict(Queue)
-        self.filters = [LoopbackFilter()] + [F() for F in (Filters or [])] # initialize the filters that shape incoming and outgoing traffic before it hits the program
-        self.program = Program(node=self) if Program else None    # init the program that will be processing incoming packets
+        self.filters = [LoopbackFilter()] + [F() for F in (Filters or [])]      # initialize the filters that shape incoming and outgoing traffic before it hits the program
+        self.program = Program(node=self) if Program else None                  # init the program that will be processing incoming packets
 
     def __repr__(self):
         return "["+self.name+"]"
@@ -47,13 +53,13 @@ class Node(threading.Thread):
         return self.__repr__()
 
     @staticmethod
-    def __genaddr__(len=6, sub_len=2):
+    def __genaddr__(segments=6, segment_length=2, delimiter=":", charset="0123456789abcdef"):
         """generate a non-guaranteed-unique mac address"""
         addr = []
-        for _ in range(len):
-            sub = ''.join(random.choice("0123456789abcdef") for _ in range(sub_len))
+        for _ in range(segments):
+            sub = ''.join(random.choice(charset) for _ in range(segment_length))
             addr.append(sub)
-        return ":".join(addr)
+        return delimiter.join(addr)
 
     def log(self, *args):
         """stdout and stderr for the node"""
@@ -89,7 +95,7 @@ class Node(threading.Thread):
             packet = f.tr(packet, interface)
         if packet:
             # if the packet wasn't dropped by a filter, log the recv and place it in the interface's inq
-            self.log("IN      ", str(interface).ljust(30), packet.decode())
+            # self.log("IN      ", str(interface).ljust(30), packet.decode())
             self.inq[interface].put(packet)
 
     def send(self, packet, interfaces=None):
@@ -101,7 +107,7 @@ class Node(threading.Thread):
                 packet = f.tx(packet, interface)  # run outgoing packet through the filters
             if packet:
                 # if not dropped, log the transmit and pass it to the interface's send method
-                self.log("OUT     ", ("<"+",".join(i.name for i in interfaces)+">").ljust(30), packet.decode())
+                # self.log("OUT     ", ("<"+",".join(i.name for i in interfaces)+">").ljust(30), packet.decode())
                 interface.send(packet)
 
 if __name__ == "__main__":
@@ -113,12 +119,12 @@ if __name__ == "__main__":
     # ls = (UDPLink('en0', 2014), VirtualLink('vl1'), VirtualLink('vl2'), IRCLink('irc3'), UDPLink('en4', 2016), IRCLink('irc5'))          # slow, but impressive to connect over IRC
     ls = (UDPLink('en0', 2010), VirtualLink('vl1'), VirtualLink('vl2'), UDPLink('irc3', 2013), UDPLink('en4', 2014), UDPLink('irc5', 2013))    # faster setup for quick testing
     nodes = (
-        Node([ls[0]], 'start', Program=None),
+        Node([ls[0]], 'start'),
         Node([ls[0], ls[2]], 'l1', Program=Switch),
         Node([ls[0], ls[1]], 'r1', Program=Switch),
-        Node([ls[2], ls[3]], 'l2', Filters=[DuplicateFilter], Program=Switch),              # l2 wont forward two of the same packet in a row
-        Node([ls[1], ls[4]], 'r2', Filters=[StringFilter.match(b'red')], Program=Switch),   # r2 wont forward any packet unless it contains the string 'red'
-        Node([ls[5], ls[4]], 'end'),
+        Node([ls[2], ls[3]], 'l2', Filters=(DuplicateFilter,), Program=Switch),              # l2 wont forward two of the same packet in a row
+        Node([ls[1], ls[4]], 'r2', Filters=(StringFilter.match(b'red'),), Program=Switch),   # r2 wont forward any packet unless it contains the string 'red'
+        Node([ls[4], ls[5]], 'end', Program=Printer),
     )
     [l.start() for l in ls]
     [n.start() for n in nodes]
@@ -133,7 +139,7 @@ if __name__ == "__main__":
             print("------------------------------")
             message = input("[start]  OUT:".ljust(49))
             nodes[0].send(bytes(message, 'UTF-8'))
-            time.sleep(0.5)
+            time.sleep(1)
 
     except (EOFError, KeyboardInterrupt):   # CTRL-D, CTRL-C
         print(("All" if all([n.stop() for n in nodes]) else 'Not all') + " nodes stopped cleanly.")

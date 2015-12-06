@@ -53,7 +53,7 @@ class LoopbackFilter(BaseFilter):
     def __init__(self):
         self.sent_hashes = defaultdict(int)  # defaults to 0
         # serves as a counter. each packet is hashed,
-        # if we see that hash sent once we can ignore once receive copy,
+        # if we see that hash sent once we can ignore one received copy,
         # if we send it twice on two ifaces, we can ignore two received copies
 
     def tr(self, packet, interface):
@@ -115,9 +115,10 @@ class StringFilter(BaseFilter):
 
     @classmethod
     def match(cls, pattern, inverse=False):
-        """Call this before passing to node to set up this stateless but dynamic filter."""
+        """Factory method to create a StringFilter which filters with the given pattern."""
         string_pattern = pattern
         invert_search = inverse
+
         class DefinedStringFilter(cls):
             pattern = string_pattern
             inverse = invert_search

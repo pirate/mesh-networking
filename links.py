@@ -72,11 +72,15 @@ class VirtualLink:
         else:
             self.log("is down.")
 
-    def send(self, packet):
+    def send(self, packet, mac_addr=broadcast_addr):
         """place sent packets directly into the reciever's queues (as if they are connected by wire)"""
         if self.keep_listening:
-            for addr, recv_queue in self.inq.items():
-                recv_queue.put(packet)
+            if mac_addr == self.broadcast_addr:
+                for addr, recv_queue in self.inq.items():
+                    recv_queue.put(packet)
+            else:
+                self.inq[mac_addr].put(packet)
+                self.inq[self.broadcast_addr].put(packet)
         else:
             self.log("is down.")
 
