@@ -1,21 +1,27 @@
-from flask import Flask
-from flask_sockets import Sockets
+from bottle import request, run, route, template, Bottle, abort
+from gevent.pywsgi import WSGIServer
+from geventwebsocket import WebSocketError
+from geventwebsocket.handler import WebSocketHandler
 
-
-app = Flask(__name__)
-sockets = Sockets(app)
-
-@sockets.route('/echo')
-def echo_socket(ws):
-    while True:
-        message = ws.receive()
-        ws.send(message)
+app = Bottle()
 
 @app.route('/')
 def index():
-    """Serve the client-side application."""
-    return open('static/index.html', 'r').read()
+    return template('static/index.html')
 
-if __name__ == '__main__':
-    # wrap Flask application with socketio's middleware
-    app.start()
+@app.route('/websocket')
+def handle_websocket():
+    wsock = request.environ.get('wsgi.websocket')
+    if not wsock:
+        abort(400, 'Expected WebSocket request.')
+
+    while True:
+        try:
+            message = wsock.receive()
+            wsock.send("Your message was: %r" % message)
+        except WebSocketError:
+            break
+
+
+server = WSGIServer(("0.0.0.0", 8080), app, handler_class=WebSocketHandler)
+server.serve_forever()
