@@ -1,6 +1,5 @@
 // (function() {  
-  var socket;
-  socket = io.connect(document.domain+":"+document.port+"/");
+  var socket = new WebSocket("ws://localhost:8080/websocket");
 
   var newnodeButton = $('button#newnode');
   var linkButton = $('button#link')
@@ -20,11 +19,11 @@
     if (status[0] == "link") {
 
       console.log(status);
-      socket.emit("addlink", JSON.stringify({source: status[1], target:status[2]}));
+      socket.send("addlink", JSON.stringify({source: status[1], target:status[2]}));
       status = ["link", status[2], 0];
 
     } else if (status[0] == "message") {
-       socket.emit("message", JSON.stringify({from:status[1], to:status[2]}));
+       socket.send("message", JSON.stringify({from:status[1], to:status[2]}));
        restoreState();
     } else {
       restoreState();
@@ -51,31 +50,30 @@
     messageButton.attr("disabled", "disabled");
   });
 
-  socket.on('connect', function() {
+  socket.onmessage = function() {
     $('body').addClass('connected');
-  });
+  };
 
-  socket.on('disconnect', function() {
+  socket.onmessage = function() {
     $('body').removeClass('connected');
-  });
+  };
 
-  socket.on('addnode', function(json){
+  socket.onmessage = function(json){
     var message = JSON.parse(json);
     addnode(message.id, message.address);
-  });
+  };
 
-  socket.on('addlink', function(json){
+  socket.onmessage = function(json){
     var message = JSON.parse(json);
     addlink(message.source, message.target);
-  });
+  };
 
-  socket.on('message', function(json){
-
+  socket.onmessage = function(json){
     var message = JSON.parse(json);
     console.log(message);
     pulseNode(message.from, 'green');
     pulseNode(message.to, 'orange');
-  });
+  };
 
   var width = 960,
       height = 500;
