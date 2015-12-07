@@ -1,14 +1,17 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <script type="text/javascript">
-    var ws = new WebSocket("ws://localhost:8080/websocket");
-    ws.onopen = function() {
-        ws.send("Hello, world");
-    };
-    ws.onmessage = function (evt) {
-        alert(evt.data);
-    };
-  </script>
-</head>
+    <head>
+        <title>Mesh</title>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="static/css/style.css">
+
+        <script src="static/js/d3.v3.js"></script>
+        <script src="static/js/socket.io.js"></script>
+        <script src="static/js/jquery-2.1.1.js"></script>
+    </head>
+    <body>
+      <button id="newnode">New node</button>
+      <button id="link">Link</button>
+      <button id="message">Message</button>
+      <script src="static/js/script.js"></script>
+    </body>
 </html>
