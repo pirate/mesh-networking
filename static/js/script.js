@@ -50,29 +50,9 @@
     messageButton.attr("disabled", "disabled");
   });
 
-  socket.onmessage = function() {
-    $('body').addClass('connected');
-  };
-
-  socket.onmessage = function() {
-    $('body').removeClass('connected');
-  };
-
-  socket.onmessage = function(json){
-    var message = JSON.parse(json);
-    addnode(message.id, message.address);
-  };
-
-  socket.onmessage = function(json){
-    var message = JSON.parse(json);
-    addlink(message.source, message.target);
-  };
-
-  socket.onmessage = function(json){
-    var message = JSON.parse(json);
-    console.log(message);
-    pulseNode(message.from, 'green');
-    pulseNode(message.to, 'orange');
+  socket.onmessage = function(msg){
+    var message = JSON.parse(msg.data);
+    console.log('[WebSocket]: ' + message.message);
   };
 
   var width = 960,
