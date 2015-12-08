@@ -1,5 +1,5 @@
 Quickstart Guide:
-================
+=================
 
 [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
 
@@ -19,7 +19,8 @@ python3 multinode.py
 
 ![](http://i.imgur.com/Nhqtked.png)
 
-## Features
+Features:
+=========
 
 This project allows you to build networks of nodes in Python, and send traffic between them over various physical layers.
 
@@ -31,8 +32,7 @@ This project allows you to build networks of nodes in Python, and send traffic b
 
 For each of the `highlighted` words you can look in the corresponding file for its code, e.g. `filters.py`.
 
-Mesh Networking:
-================
+###Mesh Networking
 
 The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
 
@@ -42,7 +42,7 @@ The second step is to agree on a common protocol for MESHP, and begin designing 
 
 For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style connection between two nodes.  The UDP header and ethernet frame are stripped on arrival.  In the future, I'd like to write a wrapper around [snabbswitch](https://github.com/SnabbCo/snabbswitch) that allows us to directly manipulate network interfaces.
 
-##Notes
+###Notes:
 
 * TUN/TAP tun0 beef:0/10
 * create new loopback interfase lo2 IPV6 only, address beef::0
