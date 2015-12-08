@@ -16,6 +16,19 @@ To simulate a larger network with random connections between nodes:
 python3 multinode.py
 ```
 
+![](http://i.imgur.com/Nhqtked.png)
+
+## Features
+
+This project allows you to build networks of nodes in Python, and send traffic between them over various physical layers.
+
+ - Simulate large network topologies by creating `nodes` and connecting them together
+ - Connect nodes using `links`, which can be virtual (connect only nodes on computer), UDP (connect all nodes within a LAN), or IRC (connect over the internet)
+ - Apply packet `filters` to traffic coming in and out of nodes (similar to iptables, but also supports stateful filters!)
+ - Run arbitrary `programs` on nodes, e.g. an echo program, a packet switch, or a webserver even
+ - `visualize` the network and create/link nodes with a d3.js graph UI (WIP)
+
+For each of the `highlighted` words you can look in the corresponding file for its code, e.g. `filters.py`.
 
 Mesh Networking:
 ================
