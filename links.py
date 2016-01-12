@@ -96,12 +96,12 @@ class UDPLink(threading.Thread, VirtualLink):
         VirtualLink.__init__(self, name=name)
         self.port = port
         self.log("starting...")
-        self.__initsocket__()
+        self._initsocket()
 
     def __repr__(self):
         return "<"+self.name+">"
 
-    def __initsocket__(self):
+    def _initsocket(self):
         """bind to the datagram socket (UDP), and enable BROADCAST mode"""
         self.net_socket = socket(AF_INET, SOCK_DGRAM)
         self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
@@ -156,8 +156,8 @@ class IRCLink(threading.Thread, VirtualLink):
         self.channel = channel
         self.nick = nick if nick != 'bobbyTables' else 'bobbyTables'+str(randint(1, 1000))
         self.log("starting...")
-        self.__connect__()
-        self.__joinchannel__()
+        self._connect()
+        self._join_channel()
         self.log("irc channel connected.")
 
     def __repr__(self):
@@ -167,7 +167,7 @@ class IRCLink(threading.Thread, VirtualLink):
         self.net_socket.send(b"QUIT\r\n")
         VirtualLink.stop(self)
 
-    def __parse__(self, msg):
+    def _parse_msg(self, msg):
         if b"PRIVMSG" in msg:
             from_nick = msg.split(b"PRIVMSG ",1)[0].split(b"!")[0][1:]              # who sent the PRIVMSG
             to_nick = msg.split(b"PRIVMSG ",1)[1].split(b" :",1)[0]                 # where did they send it
@@ -178,7 +178,7 @@ class IRCLink(threading.Thread, VirtualLink):
             return ("PING", from_srv)
         return ("","")
 
-    def __connect__(self):
+    def _connect(self):
         self.log("connecting to server %s:%s..." % (self.server, self.port))
         self.net_socket = socket(AF_INET, SOCK_STREAM)
         self.net_socket.connect((self.server, self.port))
@@ -192,7 +192,7 @@ class IRCLink(threading.Thread, VirtualLink):
             except:
                 msg = None
 
-    def __joinchannel__(self):
+    def _join_channel(self):
         self.log("joining channel %s as %s..." % (self.channel, self.nick))
         nick = self.nick
         self.net_socket.settimeout(10)
@@ -203,7 +203,7 @@ class IRCLink(threading.Thread, VirtualLink):
         while msg:
             if b"Nickname is already in use" in msg:
                 self.nick += str(randint(1, 1000))
-                self.__joinchannel__()
+                self._join_channel()
                 return
             elif b"JOIN" in msg:
                 # keep looping till we see JOIN, then we're succesfully in the room
@@ -226,7 +226,7 @@ class IRCLink(threading.Thread, VirtualLink):
             except:
                 packet = None
             if packet:
-                packet, source = self.__parse__(packet)
+                packet, source = self._parse_msg(packet)
                 if packet == "PING":
                     self.net_socket.send(b'PONG ' + source + b'\r')
                 elif packet:

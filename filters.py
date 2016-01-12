@@ -76,7 +76,7 @@ class UniqueFilter(BaseFilter):
         self.our_id = str(random.randint(10000, 99999))
 
     @staticmethod
-    def __md5__(string):
+    def _md5(string):
         return hashlib.md5(string.encode('utf-8')).hexdigest()
 
     def tr(self, packet, interface):
@@ -97,7 +97,7 @@ class UniqueFilter(BaseFilter):
             return packet
         else:
             # packet was created from this node, generate a unique id and prepend it
-            packet_uuid = self.__md5__(self.our_id + str(interface) + str(time.time()))
+            packet_uuid = self._md5(self.our_id + str(interface) + str(time.time()))
             self.seen.add(packet_uuid)
             return b"HASH:" + bytes(packet_uuid, 'utf-8') + b'; ' + packet
 

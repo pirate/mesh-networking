@@ -41,7 +41,7 @@ class Node(threading.Thread):
         self.interfaces = interfaces or []
         self.keep_listening = True
         self.promiscuous = promiscuous
-        self.mac_addr = mac_addr or self.__genaddr__(6, 2)
+        self.mac_addr = mac_addr or self._generate_MAC(6, 2)
         self.inq = defaultdict(Queue)
         self.filters = [LoopbackFilter()] + [F() for F in (Filters or [])]      # initialize the filters that shape incoming and outgoing traffic before it hits the program
         self.program = Program(node=self) if Program else None                  # init the program that will be processing incoming packets
@@ -53,7 +53,7 @@ class Node(threading.Thread):
         return self.__repr__()
 
     @staticmethod
-    def __genaddr__(segments=6, segment_length=2, delimiter=":", charset="0123456789abcdef"):
+    def _generate_MAC(segments=6, segment_length=2, delimiter=":", charset="0123456789abcdef"):
         """generate a non-guaranteed-unique mac address"""
         addr = []
         for _ in range(segments):
