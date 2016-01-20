@@ -1,18 +1,24 @@
 Quickstart Guide:
 =================
 
-[![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![GitHub license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
+[![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 To run a small demo network of nodes on your LAN:
 ```bash
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
+sh setup.sh
 # run several of these in different terminal windows, or on different computers
 # they will attempt to communicate over all network interfaces
+python3 lan-chat.py
+```
+
+To simulate a small network topology with 6 nodes:
+```bash
 python3 node.py
 ```
 
-To simulate a larger network with random connections between nodes:
+To simulate a larger network with randomized connections between nodes:
 ```bash
 python3 multinode.py
 ```
