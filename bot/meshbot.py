@@ -135,15 +135,17 @@ class MacBot(BaseProgram):
         result = communication.email(target, attachments=attachments)
         self.send(result, interface)
 
+
 def setup():
-    connections = [IRCLink(**config) for config in IRC_CONNECTIONS]
-    # connections = [UDPLink('en1', 2012)]
+    connections = [IRCLink(**config) for config in IRC_CONNECTIONS]     # production
+    # connections = [UDPLink('en1', 2012)]                              # development
     node = Node(connections, 'macbot', Program=MacBot)
 
     [conn.start() for conn in connections]
     node.start()
 
     return node, connections
+
 
 def runloop(node, connections):
     try:
