@@ -1,6 +1,8 @@
+import re
 import threading
 from time import sleep
 from queue import Empty
+from routers import MessageRouter
 
 class BaseProgram(threading.Thread):
     """Represents a program running on a Node that interprets and responds to incoming packets."""
@@ -39,3 +41,43 @@ class Switch(BaseProgram):
         if packet and other_ifaces:
             self.node.log("SWITCH  ", (str(interface)+" >>>> <"+','.join(i.name for i in other_ifaces)+">").ljust(30), packet.decode())
             self.node.send(packet, interfaces=other_ifaces)
+
+
+def R(pattern):
+    return re.compile(pattern)
+
+class RoutedProgram(BaseProgram):
+    """Base program which easily routes messages to handler functions.
+
+    usage:
+        class MyProgram(RoutedProgram):
+            router = RoutedProgram.router
+
+            @router.route(R('^HELLO$'))
+            def handle_hello(self, packet, interface):
+                self.send('How are you?', interface)
+    """
+    router = MessageRouter()
+
+    def __init__(self, node):
+        super(RoutedProgram, self).__init__(node)
+        self.router.node = node
+
+    def recv(self, packet, interface):
+        message = packet.decode()
+        self.node.log('\n< [RECV]  %s' % message)
+        self.router.recv(self, message, interface)
+
+    def send(self, message, interface):
+        if not (hasattr(message, '__iter__') and not hasattr(message, '__len__')):
+            # if message is not a list or generator
+            message = [message]
+
+        for line in message:
+            line = line if type(line) in (str, bytes) else '{0}'.format(line)
+            if not line.strip():
+                continue
+
+            self.node.log('\n> [SENT]  %s' % line)
+            packet = bytes(line, 'utf-8') if type(line) is str else line
+            self.node.send(packet, interface)

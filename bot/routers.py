@@ -23,7 +23,8 @@ class MessageRouter(object):
     def recv(self, program, message, interface=None):
 
         def default_route(program, message=None, interface=None):
-            print('Unrecognized Message msg: {0}'.format(message))
+            # print('Unrecognized Message msg: {0}'.format(message))
+            pass
 
         # run through route patterns looking for a match to handle the msg
         for pattern, handler in self.routes:

