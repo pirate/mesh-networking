@@ -30,7 +30,7 @@ class Printer(BaseProgram):
     """A simple program to just print incoming packets to the console."""
     def recv(self, packet, interface):
         sleep(0.2)  # nicety so that printers print after all the debug statements
-        self.node.log(("PRINTER  "+str(interface)).ljust(39), packet.decode())
+        self.node.log(("PRINTER  %s" % interface).ljust(39), packet.decode())
 
 class Switch(BaseProgram):
     """A switch that routes a packet coming in on any interface to all the other interfaces."""

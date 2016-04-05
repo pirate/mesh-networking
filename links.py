@@ -189,7 +189,7 @@ class IRCLink(threading.Thread, VirtualLink):
             try:
                 # keep reading 2 sec until servers stops sending text
                 msg = self.net_socket.recv(4096).strip()
-            except:
+            except Exception:
                 msg = None
 
     def _join_channel(self):
@@ -230,7 +230,6 @@ class IRCLink(threading.Thread, VirtualLink):
                 if packet == "PING":
                     self.net_socket.send(b'PONG ' + source + b'\r')
                 elif packet:
-                    
                     for mac_addr, recv_queue in self.inq.items():
                         # put the packet in that mac_addr recv queue
                         recv_queue.put(packet)

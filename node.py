@@ -87,7 +87,7 @@ class Node(threading.Thread):
         self.log("Stopped listening.")
 
     ### IO
-        
+
     def recv(self, packet, interface):
         """run incoming packet through the filters, then place it in its inq"""
         # the packet is piped into the first filter, then the result of that into the second filter, etc.
@@ -101,6 +101,7 @@ class Node(threading.Thread):
     def send(self, packet, interfaces=None):
         """write packet to given interfaces, default is broadcast to all interfaces"""
         interfaces = interfaces or self.interfaces  # default to all interfaces
+        interfaces = interfaces if hasattr(interfaces, '__iter__') else [interfaces]
 
         for interface in interfaces:
             for f in self.filters:
@@ -128,12 +129,12 @@ if __name__ == "__main__":
     )
     [l.start() for l in ls]
     [n.start() for n in nodes]
-    
+
     print('\n', nodes)
     print("l2 wont forward two of the same packet in a row.")
     print("r2 wont forward any packet unless it contains the string 'red'.")
     print("Experiment by typing packets for [start] to send out, and seeing if they make it to the [end] node.")
-    
+
     try:
         while True:
             print("------------------------------")
