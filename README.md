@@ -40,7 +40,7 @@ For each of the `highlighted` words you can look in the corresponding file for i
 
 ###Mesh Networking
 
-The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).  
+The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).
 
 The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to each other using real or virtual network interfaces.
 
@@ -65,7 +65,7 @@ For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style
 
 The source and desination address information is stored in the MESHP header, and is read by meshpd whenever they hit tun0.
 
-> TUN (namely network TUNnel) simulates a network layer device and it operates with layer 3 packets like IP packets. TAP (namely network tap) simulates a link layer device and it operates with layer 2 packets like Ethernet frames. TUN is used with routing, while TAP is used for creating a network bridge.  
+> TUN (namely network TUNnel) simulates a network layer device and it operates with layer 3 packets like IP packets. TAP (namely network tap) simulates a link layer device and it operates with layer 2 packets like Ethernet frames. TUN is used with routing, while TAP is used for creating a network bridge.
 Packets sent by an operating system via a TUN/TAP device are delivered to a user-space program which attaches itself to the device. A user-space program may also pass packets into a TUN/TAP device. In this case TUN/TAP device delivers (or "injects") these packets to the operating-system network stack thus emulating their reception from an external source.
 
 
@@ -99,21 +99,21 @@ The more existing pieces of the existing internet framework we can use, the easi
 * UDP
 * ICMP
 
-Typical HTTP packet structure using MESHP:  
+Typical HTTP packet structure using MESHP:
 ------------------------------------------
 Our mesh protocol comes in and replaces the IP layer, leaving the other layers intact.  The only other manipulation required to get it working is access to the kernel's routing table, allowing us to route traffic in the right direction.
 
-+ Ethernet frame (normal ethernet with MAC addressing)  
-+ MESHP Header (instead of IP header)  
-+ TCP Header (normal TCP)  
-+ HTTP Header (normal HTTP)  
++ Ethernet frame (normal ethernet with MAC addressing)
++ MESHP Header (instead of IP header)
++ TCP Header (normal TCP)
++ HTTP Header (normal HTTP)
 + Data
 
 Issues so far:
 --------------
 
-Mac OS X does not allow you to read raw frames easily from a network interface.  
-On linux you can open a raw_socket and read to your heart's content:  
+Mac OS X does not allow you to read raw frames easily from a network interface.
+On linux you can open a raw_socket and read to your heart's content:
 
 ```python
 rawSocket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
@@ -121,7 +121,7 @@ data = rawSocket.readto(1024)
 ```
 
 
-On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.  
+On a Mac (or any FreeBSD-based system) this doesn't work because the AF_PACKET socket is not available.
 It's possible to sniff packets going by using something like pcap or the BPF/tcpdump, but I don't believe it's possible to intercept them (correct me if I'm wrong here).
 
 We're forced to specify a port to bind to by python's sockets, but we are able to share a port between multiple processes using `SO_REUSEPORT`, which is very cool.  This allows two clients to both receive packets sent to that port.  setblocking(0) is for convenience (just beware, you have to do some error handling to check if the socket is ready to read or write).
@@ -143,7 +143,7 @@ I've had the best success so far with libdnet (rather than scapy or pypcap).  dn
 
 Cool Things:
 ------------
-As I mentioned above, you can allow multiple processes to connect to the same socket on the same port, and they all recieve a duplicate of every packet sent to that socket.  This is a simple socket option, but the implications are great.  Now we can have multiple clients listen on the same port, meaning to the clients this is not longer a port, it's simply a broadcast interface.  Every client gets every packet.  Every client processes every packet, and filters out everything it doesn't care about.  
+As I mentioned above, you can allow multiple processes to connect to the same socket on the same port, and they all recieve a duplicate of every packet sent to that socket.  This is a simple socket option, but the implications are great.  Now we can have multiple clients listen on the same port, meaning to the clients this is not longer a port, it's simply a broadcast interface.  Every client gets every packet.  Every client processes every packet, and filters out everything it doesn't care about.
 
 ```
 datagram_socket = socket(AF_INET, SOCK_DGRAM)
@@ -206,9 +206,9 @@ Since these two Link types both have the same accessor methods, we can connect o
 ```python
 red, green, blue, purple = HardLink("en1"), VirtualLink(), VirtualLink(), VirtualLink()
 
-nodes = [Node([red, green, blue]), 
-         Node([red, green]), 
-         Node([green, blue]), 
+nodes = [Node([red, green, blue]),
+         Node([red, green]),
+         Node([green, blue]),
          Node([purple]),
          Node([green, purple],
          Node([purple, red]))
