@@ -22,9 +22,8 @@ class VirtualLink:
         self.name = name
         self.keep_listening = True
 
-        # buffer dict for receiving incoming packets
-        # {'connectednode1': Queue([packet1, packet2])}
-        self.inq = defaultdict(Queue)
+        # buffer for receiving incoming packets
+        self.inq = defaultdict(Queue)  # mac_addr: [packet1, packet2, ...]
         self.inq[self.broadcast_addr] = Queue()
 
     ### Utilities

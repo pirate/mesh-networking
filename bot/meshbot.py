@@ -23,14 +23,20 @@ import communication
 
 from settings import IRC_CONNECTIONS, NICK, VERSION, MAIN_USER, ADMINS
 
+"""
+Programs for network communication, discovery,
+bot control, and identification are composed using inheritance,
+and are then run on a node and passed incoming messages.
+"""
+
 
 class SwarmBot(RoutedProgram):
-    """handle discovery and communication with other bots"""
+    """Program which handles discovery and communication with other bots"""
     router = RoutedProgram.router
 
     def __init__(self, node):
         super(SwarmBot, self).__init__(node)
-        self.friends = {}
+        self.NEIGHBORS = {}
 
     def parse_arp(self, packet):
         node_info = packet.split('IAM ')[-1]
@@ -48,12 +54,12 @@ class SwarmBot(RoutedProgram):
     @router.route(R('^IAM'))
     def handle_arp_reply(self, packet, interface):
         mac_addr, name = self.parse_arp(packet)
-        self.friends[name] = mac_addr
-        self.send('FRIENDS: %s' % self.friends, interface)
+        self.NEIGHBORS[name] = mac_addr
+        self.send('FRIENDS: %s' % self.NEIGHBORS, interface)
 
 
 class MacBot(SwarmBot):
-    """handle bot commands to run on the host machine"""
+    """Program to accept and run common botnet commands on Mac OS X computers"""
     router = SwarmBot.router
 
     def __init__(self, node):
