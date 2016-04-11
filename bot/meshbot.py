@@ -152,8 +152,8 @@ class MacBot(SwarmBot):
 
 
 def setup():
-    # connections = [IRCLink(**config) for config in IRC_CONNECTIONS]       # production
-    connections = [UDPLink('en1', 2012)]                                    # development
+    connections = [IRCLink(**config) for config in IRC_CONNECTIONS]       # production
+    connections += [UDPLink('en1', 2012)]                                    # development
     node = Node(connections, NICK, Program=MacBot)
 
     [conn.start() for conn in connections]
