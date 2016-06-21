@@ -140,6 +140,8 @@ if s in ready_to_read:
 
 I've had the best success so far with libdnet (rather than scapy or pypcap).  dnet stands for "dumb networking", and that's exactly what it is.  It's a stupid-simple api to access raw sockets and network interfaces.  `dnet.iface('en1').send('HI')` will literally write "HI" to the network interface (with no ethernet frame, no IP header, to TCP header, just 'hi').  In fact, you can use this to DDoS individual people, or your entire local network.  Just run it in a `while True:` loop.  The stream of meaningless malformed packets caused the wifi connection at hackerschool to slow to a dead stop within seconds.  The full code for this style of attack can be found in `bring_it_down.py`.
 
+Another issue I recently discovered is that most higher-end routers will cap broadcast UDP transmissions to their lowest possible transmit rate, to prevent flooding the LAN with traffic.  This is to encourage devs to use proper multicast so packets can be directed only to interested receiving parties, instead of sending every packet to every LAN receiver.  See this [Network Engineering Stack Exchange question] question](http://networkengineering.stackexchange.com/questions/1782/why-does-my-udp-broadcast-wireless-communication-is-capped-at-1mbs/) for more information about broadcast UDP transmit rate capping.
+
 
 Cool Things:
 ------------
