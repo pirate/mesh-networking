@@ -7,6 +7,7 @@ def run_cmd(command, verbose=True, shell='/bin/bash'):
     process = Popen(command, shell=True, stdout=PIPE, stderr=STDOUT, executable=shell)
     output = process.stdout.read().decode().strip().split('\n')
     if verbose:
+        # return full output including empty lines
         return output
     return [line for line in output if line.strip()]
 

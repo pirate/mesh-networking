@@ -74,3 +74,14 @@ def get_location():
     # geo_info = geo_locate()
     # location = geo_info[0]+", "+geo_info[1]+" ("+str(geo_info[4])+", "+str(geo_info[5])+")"
     return 'Atlanta'
+
+
+def add_gatekeeper_exception(app_path):
+    """WARNING: big scary password prompt is shown to the current active user"""
+    return run_cmd('spctl --add "%s"' % app_path)
+
+def lock_screen():
+    return run_cmd('/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend')
+
+def screensaver():
+    return run_cmd('open /System/Library/Frameworks/ScreenSaver.framework/Versions/A/Resources/ScreenSaverEngine.app')
