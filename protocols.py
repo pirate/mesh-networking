@@ -44,9 +44,3 @@ if __name__ == '__main__':
     test_packet.show()
     print(bytes(test_packet))
 
-
-
-
-# BROADCAST: DISCOVER  ->
-
-#                      <-  NEIGHBORS: {}

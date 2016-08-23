@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # MIT License: Nick Sweeting
-__version__ = "1.0"
 
 import random
 import threading
@@ -35,7 +34,7 @@ class Node(threading.Thread):
         Programs process packets off the node's incoming queue, then send responses out through node's outbound filters,
         and finally out to the right network interface.
     """
-    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=None, Program=None):
+    def __init__(self, interfaces=None, name="n1", promiscuous=False, mac_addr=None, Filters=(), Program=None):
         threading.Thread.__init__(self)
         self.name = name
         self.interfaces = interfaces or []
@@ -43,11 +42,11 @@ class Node(threading.Thread):
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self._generate_MAC(6, 2)
         self.inq = defaultdict(Queue)
-        self.filters = [LoopbackFilter()] + [F() for F in (Filters or [])]      # initialize the filters that shape incoming and outgoing traffic before it hits the program
+        self.filters = [LoopbackFilter()] + [F() for F in Filters)]             # initialize the filters that shape incoming and outgoing traffic before it hits the program
         self.program = Program(node=self) if Program else None                  # init the program that will be processing incoming packets
 
     def __repr__(self):
-        return "["+self.name+"]"
+        return "[{0}]".format(self.name)
 
     def __str__(self):
         return self.__repr__()
@@ -92,6 +91,8 @@ class Node(threading.Thread):
         """run incoming packet through the filters, then place it in its inq"""
         # the packet is piped into the first filter, then the result of that into the second filter, etc.
         for f in self.filters:
+            if not packet:
+                break
             packet = f.tr(packet, interface)
         if packet:
             # if the packet wasn't dropped by a filter, log the recv and place it in the interface's inq
