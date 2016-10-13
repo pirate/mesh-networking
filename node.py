@@ -76,7 +76,8 @@ class Node(threading.Thread):
         """runloop that gets triggered by node.start()
         reads new packets off the link and feeds them to recv()
         """
-        if self.program: self.program.start()
+        if self.program:
+            self.program.start()
         while self.keep_listening:
             for interface in self.interfaces:
                 packet = interface.recv(self.mac_addr if not self.promiscuous else "00:00:00:00:00:00")
