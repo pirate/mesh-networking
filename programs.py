@@ -1,6 +1,7 @@
 import re
 import threading
 from time import sleep
+from collections import defaultdict
 from queue import Empty
 from routers import MessageRouter
 
@@ -41,6 +42,15 @@ class Switch(BaseProgram):
         if packet and other_ifaces:
             self.node.log("SWITCH  ", (str(interface)+" >>>> <"+','.join(i.name for i in other_ifaces)+">").ljust(30), packet.decode())
             self.node.send(packet, interfaces=other_ifaces)
+
+class Cache(BaseProgram):
+    """A simple program to which stores incoming packets in a buffer indefinitely."""
+    def __init__(self, node):
+        self.received = []
+        BaseProgram.__init__(self, node)
+
+    def recv(self, packet, interface):
+        self.received.append(packet)
 
 
 def R(pattern):
