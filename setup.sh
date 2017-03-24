@@ -5,7 +5,7 @@ if which brew; then
     brew install python3
 else
     apt install libdnet python-dumbnet python3
-end
+fi
 
 # OR to install libdnet and bindings manually:
 #
