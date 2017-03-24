@@ -6,7 +6,16 @@ from random import randint
 from collections import defaultdict
 
 import select
-from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST, SO_REUSEPORT
+from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR, SO_BROADCAST
+
+try:
+    # needed for BSD systems like macOS
+    from socket import SO_REUSEPORT
+    IS_BSD = True
+except:
+    # not needed on non-BSD systems (e.g. linux)
+    IS_BSD = False
+
 
 class VirtualLink:
     """A Link represents a network link between Nodes.
@@ -98,12 +107,13 @@ class UDPLink(threading.Thread, VirtualLink):
         self._initsocket()
 
     def __repr__(self):
-        return "<"+self.name+">"
+        return "<" + self.name + ">"
 
     def _initsocket(self):
         """bind to the datagram socket (UDP), and enable BROADCAST mode"""
         self.net_socket = socket(AF_INET, SOCK_DGRAM)
-        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
+        if IS_BSD:
+            self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
         self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
         self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         self.net_socket.setblocking(0)
@@ -115,12 +125,15 @@ class UDPLink(threading.Thread, VirtualLink):
         """runloop that reads incoming packets off the interface into the inq buffer"""
         self.log("ready to receive.")
         # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
+        read_ready = None
+
         while self.keep_listening:
             try:
                 read_ready, w, x = select.select([self.net_socket], [], [], 0.01)
             except Exception:
                 # catch timeouts
-                r = []
+                pass
+
             if read_ready:
                 packet, addr = read_ready[0].recvfrom(4096)
                 if addr[1] == self.port:
@@ -153,7 +166,7 @@ class IRCLink(threading.Thread, VirtualLink):
         self.server = server
         self.port = port
         self.channel = channel
-        self.nick = nick if nick != 'bobbyTables' else 'bobbyTables'+str(randint(1, 1000))
+        self.nick = nick if nick != 'bobbyTables' else 'bobbyTables' + str(randint(1, 1000))
         self.log("starting...")
         self._connect()
         self._join_channel()
