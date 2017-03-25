@@ -1,14 +1,11 @@
-# Mesh Networking [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+# Mesh Networking [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)
 
 ```bash
-apt install libdnet python-dubmnet python3  # on ubuntu
-# OR
-brew install --with-python libdnet          # on mac
-
+apt install libdnet python-dubmnet  # or `brew install --with-python libdnet`
 pip install mesh-networking
 ```
 
-This is a library to help you create network topologies in python.
+This is a library to help you create and test flexible network topologies in python.
 
 It's intended for both simulating networks locally, and connecting programs across networks in real life.
 It works very well with `scapy` for building and testing your own protocols or networked apps.
@@ -19,7 +16,7 @@ between them.  Traffic can be filtered, then it gets passed to "programs" which 
 Using these simple building blocks, you can simulate large network topologies on a single machine, or connect several machines
 and link nodes on them using real connections channels like ethernet, wifi, or even IRC.
 
-An example use case is building a bitcoin network, where you want nodes to auto-discover eachother and be able to send traffic.
+An example use case is building a small network, where you want nodes to auto-discover eachother on a LAN and be able to send traffic.
 
 ```python
 from mesh.link import UDPLink
@@ -27,37 +24,40 @@ from mesh.node import Node
 
 lan = UDPLink('en0', 8080)  # traffic will be sent using UDP-broadcast packets to all machines on your LAN
 
-node1 = Node([lan], 'bob', Program=BitcoinNode)  # programs are just threads with a send() and recv() method
-node2 = Node([lan], 'alice', Program=BitcoinNode)
+node1 = Node([lan], 'bob', Program=Printer)  # programs are just threads with a send() and recv() method
+node2 = Node([lan], 'alice', Program=Printer)
 
 (lan.start(), node1.start(), node2.start())
 
 node1.send('hi alice!')
 # node2 gets > 'hi alice!''
-# specifically, BitcoinNode thread on node2 will have its recv() method called with "hi alice!"
-```
+# Printer thread on node2 has its recv() method called with "hi alice!"
 
+# next step, add an IRCLink to let them communicate ouside the LAN!
+```
 
 ## Quickstart Guide
 
-You can set up a secret chat that auto-discovers all peers on your LAN in a couple lines of code!
+You can set up a **secret chat that auto-discovers all peers on your LAN** in a couple lines of code!
 Run the `lan_chat.py` example to get started.
 
 ```bash
-apt install libdnet python-dubmnet python3  # or brew install --with-python libdnet
-
-git clone https://github.com/pirate/mesh-networking
-cd mesh-networking
-
-python3 setup.py install
-
 # run several of these in different terminal windows, or on different computers
 # they will autodiscover any peers and let you chat over your LAN
+git clone https://github.com/pirate/mesh-networking
+cd mesh-networking
 python3 examples/lan_chat.py
 ```
 
-To get a feel for the API and capabilities, check out some of the more complicated examples.
+To get a feel for the API and capabilities, you can read the source and run some more intricate examples.
 Note that all examples require python3 to run, even though the library itself is compatible with python2.
+
+```bash
+# To install the package in a way that lets you edit the source:
+git clone https://github.com/pirate/mesh-networking
+cd mesh-networking
+python3 setup.py install
+```
 
 To simulate a small network topology with 6 nodes:
 
