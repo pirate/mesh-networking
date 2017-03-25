@@ -1,5 +1,9 @@
 import threading
-from queue import Queue, Empty
+
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
 
 from time import sleep
 from random import randint
@@ -38,7 +42,7 @@ class VirtualLink:
     ### Utilities
 
     def __repr__(self):
-        return "<"+self.name+">"
+        return "<%s>" % self.name
 
     def __str__(self):
         return self.__repr__()

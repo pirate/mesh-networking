@@ -24,7 +24,7 @@ class BaseFilter:
 
 class DuplicateFilter(BaseFilter):
     """filter sending/receiving duplicates of the same packet in a row.
-    
+
         This is an example of a stateful filter, it needs to remember
         last_sent and last_recv between packet recvs.
     """
@@ -73,34 +73,29 @@ class LoopbackFilter(BaseFilter):
 class UniqueFilter(BaseFilter):
     def __init__(self):
         self.seen = set()
-        self.our_id = str(random.randint(10000, 99999))
 
     @staticmethod
-    def _md5(string):
-        return hashlib.md5(string.encode('utf-8')).hexdigest()
+    def hash(string):
+        return hashlib.md5(string).hexdigest()
 
     def tr(self, packet, interface):
-        if not packet: return None
-        if b"HASH:" == packet[:5]:
-            packet_uuid = packet[5:37]
-            if packet_uuid in self.seen:
-                return None                     # we've already seen this packet's uuid, drop this duplicate
-            else:
-                self.seen.add(packet_uuid)      # otherwise it's new, pass it on and add to set of already seen
-                return packet
+        if not packet:
+            return None
+
+        packet_hash = self.hash(packet)
+        if packet_hash in self.seen:
+            return None
+        else:
+            self.seen.add(packet_hash)
+            return packet
 
     def tx(self, packet, interface):
-        if not packet: return None
-        if b"HASH:" == packet[:5]:
-            packet_uuid = packet[5:37]
-            self.seen.add(packet_uuid)
-            return packet
-        else:
-            # packet was created from this node, generate a unique id and prepend it
-            packet_uuid = self._md5(self.our_id + str(interface) + str(time.time()))
-            self.seen.add(packet_uuid)
-            return b"HASH:" + bytes(packet_uuid, 'utf-8') + b'; ' + packet
+        if not packet:
+            return None
 
+        packet_hash = self.hash(packet)
+        self.seen.add(packet_hash)
+        return packet
 
 class StringFilter(BaseFilter):
     """Filter for packets that contain a string pattern.

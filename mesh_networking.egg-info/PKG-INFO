@@ -1,0 +1,25 @@
+Metadata-Version: 1.1
+Name: mesh-networking
+Version: 0.0.2
+Summary: A library for creating flexible network topologies
+Home-page: https://github.com/pirate/mesh-networking
+Author: Nick Sweeting
+Author-email: mesh-networking@sweeting.me
+License: MIT
+Description: This library helps you test large networks of nodes across physical and simulated links.
+Keywords: networking routing mesh osi scapy udp tcp iptables irc
+Platform: UNKNOWN
+Classifier: Topic :: Utilities
+Classifier: Topic :: System :: Networking
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6

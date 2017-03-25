@@ -9,10 +9,9 @@
 import math
 import time
 
-from node import Node
-from links import UDPLink, VirtualLink, IRCLink
-from programs import Cache, BaseProgram
-from filters import UniqueFilter
+from mesh.node import Node
+from mesh.links import VirtualLink
+from mesh.programs import Cache, BaseProgram
 
 
 class ButterflySwitch(BaseProgram):
@@ -89,6 +88,7 @@ if __name__ == "__main__":
             NODES[row_idx][col_idx + 1].interfaces.append(bridge)
             bridge.start()
 
+    # TODO: finish diagonal linking algorithm
     # give each node a second diagonal link, starting from right to left
     for col_idx in reversed(range(1, num_cols)):
         for row_idx in range(num_rows):
@@ -104,10 +104,16 @@ if __name__ == "__main__":
 
     print_grid(NODES)
 
+    print('Input the number of a node, followed by text to send')
+    print('    e.g.  [$]: 0:hello world!')
     dont_exit = True
     try:
         while dont_exit:
-            in_id, in_text = str(input("#:text ")).split(':', 1)
+            try:
+                in_id, in_text = str(input("#:text ")).split(':', 1)
+            except ValueError:
+                print('Input must be #:text')
+                continue
             in_node = NODES[int(in_id)][0]
             in_node.send(bytes(in_text, 'UTF-8'))
             time.sleep(0.2)

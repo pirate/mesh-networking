@@ -1,32 +1,79 @@
-Quickstart Guide:
-=================
+# Mesh Networking [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)[![Join the chat at https://gitter.im/pirate/mesh-networking](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pirate/mesh-networking?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-To run a small demo network of nodes on your LAN:
 ```bash
-git clone https://github.com/pirate/mesh-networking
-cd mesh-networking
-sh setup.sh
-# run several of these in different terminal windows, or on different computers
-# they will attempt to communicate over all network interfaces
-python3 lan-chat.py
+apt install libdnet python-dubmnet python3  # on ubuntu
+# OR
+brew install --with-python libdnet          # on mac
+
+pip install mesh-networking
 ```
 
-To simulate a small network topology with 6 nodes:
+This is a library to help you create network topologies in python.
+
+It's intended for both simulating networks locally, and connecting programs across networks in real life.
+It works very well with `scapy` for building and testing your own protocols or networked apps.
+
+You can create "nodes" which live on any physical machine, connect them using physical or vitual links, and send traffic
+between them.  Traffic can be filtered, then it gets passed to "programs" which are threads running on the nodes.
+
+Using these simple building blocks, you can simulate large network topologies on a single machine, or connect several machines
+and link nodes on them using real connections channels like ethernet, wifi, or even IRC.
+
+An example use case is building a bitcoin network, where you want nodes to auto-discover eachother and be able to send traffic.
+
+```python
+from mesh.link import UDPLink
+from mesh.node import Node
+
+lan = UDPLink('en0', 8080)  # traffic will be sent using UDP-broadcast packets to all machines on your LAN
+
+node1 = Node([lan], 'bob', Program=BitcoinNode)  # programs are just threads with a send() and recv() method
+node2 = Node([lan], 'alice', Program=BitcoinNode)
+
+(lan.start(), node1.start(), node2.start())
+
+node1.send('hi alice!')
+# node2 gets > 'hi alice!''
+# specifically, BitcoinNode thread on node2 will have its recv() method called with "hi alice!"
+```
+
+
+## Quickstart Guide
+
+You can set up a secret chat that auto-discovers all peers on your LAN in a couple lines of code!
+Run the `lan_chat.py` example to get started.
+
 ```bash
-python3 node.py
+apt install libdnet python-dubmnet python3  # or brew install --with-python libdnet
+
+git clone https://github.com/pirate/mesh-networking
+cd mesh-networking
+
+python3 setup.py install
+
+# run several of these in different terminal windows, or on different computers
+# they will autodiscover any peers and let you chat over your LAN
+python3 examples/lan_chat.py
+```
+
+To get a feel for the API and capabilities, check out some of the more complicated examples.
+Note that all examples require python3 to run, even though the library itself is compatible with python2.
+
+To simulate a small network topology with 6 nodes:
+
+```bash
+python3 examples/small_network.py
 ```
 
 To simulate a larger network with randomized connections between nodes:
+
 ```bash
-python3 multinode.py
+python3 examples/large_network.py
 ```
 
 ![](http://i.imgur.com/Nhqtked.png)
 
-Features:
-=========
+## Features
 
 This project allows you to build networks of nodes in Python, and send traffic between them over various physical layers.
 
@@ -38,9 +85,16 @@ This project allows you to build networks of nodes in Python, and send traffic b
 
 For each of the `highlighted` words you can look in the corresponding file for its code, e.g. `filters.py`.
 
-###Mesh Networking
+## Goals
 
-The Goal of this project is to re-implement several pieces of the network stack in order to make secure, decentralized, mesh network routing possible.  Several components will be taken from the existing stack, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).
+**Q:** Why is this library called `mesh-networking` and not `py-networking` or something like that?
+
+**A:** The original goal of this project was to build a testing framework in order to work on developing a general mesh-network routing system that is secure, decentralized, and fast.
+I since decided to release this library as a general networking utility, and to work on the mesh routing stuff in a separate project.
+
+## Mesh Routing Development Progress
+
+Several components were copied from the OSI networking model, but used in different ways than they are now (IPV6, ARP).  Other parts will have to be completely re-written (routing, DNS).
 
 The first step is to create an abstact representation of nodes in the network that allows us to test our protocol, you will find this in `node.py`, and a controller that can spawn multiple nodes in `multinode.py`.  You can link nodes to each other using real or virtual network interfaces.
 
@@ -48,7 +102,7 @@ The second step is to agree on a common protocol for MESHP, and begin designing 
 
 For now, we use UDP broadcast packets to simulate a raw Ethernet BROADCAST-style connection between two nodes.  The UDP header and ethernet frame are stripped on arrival.  In the future, I'd like to write a wrapper around [snabbswitch](https://github.com/SnabbCo/snabbswitch) that allows us to directly manipulate network interfaces.
 
-###Notes:
+### Notes:
 
 * TUN/TAP tun0 beef:0/10
 * create new loopback interfase lo2 IPV6 only, address beef::0

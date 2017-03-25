@@ -1,9 +1,14 @@
 import re
 import threading
 from time import sleep
-from collections import defaultdict
-from queue import Empty
-from routers import MessageRouter
+
+try:
+    from queue import Empty
+except ImportError:
+    from Queue import Empty
+
+from .routers import MessageRouter
+
 
 class BaseProgram(threading.Thread):
     """Represents a program running on a Node that interprets and responds to incoming packets."""

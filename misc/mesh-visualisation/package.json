@@ -1,0 +1,15 @@
+{
+  "name": "mesh-visualisation",
+  "version": "0.0.1",
+  "description": "visualisation for mesh networks",
+  "author": "Jonathan Dahan <jonathan@jonathan.is>",
+  "dependencies": {
+    "coffee-script-redux": "^2.0.0-beta8",
+    "restify": "^2.8.1",
+    "socket.io": "^1.0.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jedahan/mesh-visualisation.git"
+  }
+}
