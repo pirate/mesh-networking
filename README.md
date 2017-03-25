@@ -9,10 +9,8 @@ This is a library to help you create and test flexible network topologies in pyt
 
 It's intended for both simulating networks locally, and connecting programs across networks in real life.
 It works very well with `scapy` for building and testing your own protocols or networked apps.
-
 You can create "nodes" which live on any physical machine, connect them using physical or vitual links, and send traffic
 between them.  Traffic can be filtered, then it gets passed to "programs" which are threads running on the nodes.
-
 Using these simple building blocks, you can simulate large network topologies on a single machine, or connect several machines
 and link nodes on them using real connections channels like ethernet, wifi, or even IRC.
 
