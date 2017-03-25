@@ -19,8 +19,9 @@ and link nodes on them using real connections channels like ethernet, wifi, or e
 An example use case is building a small network, where you want nodes to auto-discover eachother on a LAN and be able to send traffic.
 
 ```python
-from mesh.link import UDPLink
 from mesh.node import Node
+from mesh.link import UDPLink
+from mesh.programs import Printer
 
 lan = UDPLink('en0', 8080)  # traffic will be sent using UDP-broadcast packets to all machines on your LAN
 
@@ -33,43 +34,39 @@ node1.send('hi alice!')
 # node2 gets > 'hi alice!''
 # Printer thread on node2 has its recv() method called with "hi alice!"
 
-# next step, add an IRCLink to let them communicate ouside the LAN!
+# Next steps: try adding an IRCLink to let them communicate ouside the LAN!
 ```
 
 ## Quickstart Guide
 
-You can set up a **secret chat that auto-discovers all peers on your LAN** in a couple lines of code!
-Run the `lan_chat.py` example to get started.
+**Set up a secret chat that auto-discovers all peers on your LAN:**
 
 ```bash
-# run several of these in different terminal windows, or on different computers
-# they will autodiscover any peers and let you chat over your LAN
-git clone https://github.com/pirate/mesh-networking
-cd mesh-networking
-pyhton3 setup.py install
+# install the package and clone the repo, then run several of these in different terminal windows, or on different computers
+# they will autodiscover any peers and let you chat over your LAN!
 python3 examples/lan_chat.py
+```
+
+**To simulate a small network topology with 6 nodes:**
+
+```bash
+python3 examples/small_network.py
+```
+
+**To simulate a larger network with randomized connections between nodes:**
+
+```bash
+python3 examples/large_network.py
 ```
 
 To get a feel for the API and capabilities, you can read the source and run some more intricate examples.
 Note that all examples require python3 to run, even though the library itself is compatible with python2.
 
 ```bash
-# To install the package in a way that lets you edit the source:
+# To run the examples above & install the package from source:
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
 python3 setup.py install
-```
-
-To simulate a small network topology with 6 nodes:
-
-```bash
-python3 examples/small_network.py
-```
-
-To simulate a larger network with randomized connections between nodes:
-
-```bash
-python3 examples/large_network.py
 ```
 
 ![](http://i.imgur.com/Nhqtked.png)
