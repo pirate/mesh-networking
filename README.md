@@ -46,6 +46,7 @@ Run the `lan_chat.py` example to get started.
 # they will autodiscover any peers and let you chat over your LAN
 git clone https://github.com/pirate/mesh-networking
 cd mesh-networking
+pyhton3 setup.py install
 python3 examples/lan_chat.py
 ```
 
