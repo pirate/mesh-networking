@@ -289,3 +289,4 @@ Links:
 * https://github.com/ewust
 * https://en.wikipedia.org/wiki/IEEE_802.1aq (Shortest-Path-Bridging)
 * https://developer.apple.com/reference/multipeerconnectivity (Apple's mesh framework)
+* http://www.secdev.org/projects/scapy/
