@@ -1,4 +1,4 @@
-# Mesh Networking [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)
+# Mesh Networking [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH) [![PyPI](https://img.shields.io/pypi/v/mesh-networking.svg?style=flat-square)](https://pypi.python.org/pypi/mesh-networking/) [![PyPI](https://img.shields.io/pypi/pyversions/mesh-networking.svg?style=flat-square)](https://pypi.python.org/pypi/mesh-networking/)
 
 ```bash
 apt install libdnet python-dubmnet  # or `brew install --with-python libdnet`
