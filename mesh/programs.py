@@ -1,4 +1,5 @@
 import re
+import os
 import threading
 from time import sleep
 
@@ -61,6 +62,7 @@ class Cache(BaseProgram):
 def R(pattern):
     return re.compile(pattern)
 
+
 class RoutedProgram(BaseProgram):
     """Base program which easily routes messages to handler functions.
 
@@ -96,3 +98,60 @@ class RoutedProgram(BaseProgram):
             self.node.log('\n> [SENT]  %s' % line)
             packet = bytes(line, 'utf-8') if type(line) is str else line
             self.node.send(packet, interface)
+
+
+class RedisProgram(BaseProgram):
+    """
+        A program which places all incoming an outgoing packets into a redis queue.
+        The keys used for the queue can be passed in, these are the defaults:
+            db:        redis://127.0.0.1/0
+            in  queue: node-{pid}-recv
+            out queue: node-{pid}-send
+    """
+    def __init__(self, node, recv_key=None, send_key=None, redis_conf=None):
+        super(RedisProgram, self).__init__(node)
+        import redis
+        pid = os.getpid()
+        self.recv_key = recv_key or 'node-{}-recv'.format(pid)
+        self.send_key = send_key or 'node-{}-send'.format(pid)
+        self.nodeq = redis.Redis(**(redis_conf or {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'db': 0,
+        }))
+
+    def run(self):
+        print('[√] Redis program is buffering IO to db:{0} keys:{1} & {2}.'.format(
+            0, self.recv_key, self.send_key))
+
+        while self.keep_listening:
+            for interface in self.node.interfaces:
+                if self.get_recvs(interface):
+                    continue
+                if self.put_sends():
+                    continue
+
+                sleep(0.01)
+
+    def recv(self, packet, interface):
+        print('[IN]:  {}'.format(packet))
+        self.nodeq.rpush(self.recv_key, packet)
+
+    def send(self, packet, interface=None):
+        print('[OUT]: {}'.format(packet))
+        self.node.send(packet, interface)
+
+    def get_recvs(self, interface):
+        try:
+            msg = self.node.inq[interface].get(timeout=0)
+            self.recv(msg, interface)
+            return True
+        except Empty:
+            return False
+
+    def put_sends(self):
+        out = self.nodeq.rpop(self.send_key)
+        if out:
+            self.send(out)
+            return True
+        return False
