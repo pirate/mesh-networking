@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 SHORT_DESC = 'A library for creating flexible network topologies'
@@ -6,7 +6,7 @@ LONG_DESC = 'This library helps you test large networks of nodes across physical
 
 setup(
     name='mesh-networking',
-    version='0.0.2',
+    version='0.0.4',
     description=SHORT_DESC,
     long_description=LONG_DESC,
 
@@ -35,7 +35,7 @@ setup(
     ],
     keywords='networking routing mesh osi scapy udp tcp iptables irc',
 
-    packages=find_packages('mesh', exclude=['misc', 'examples']),
+    packages=['mesh'],
     test_suite='mesh.tests',
     install_requires=[],
 )
