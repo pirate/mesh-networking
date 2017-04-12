@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 SHORT_DESC = 'A library for creating flexible network topologies'
 LONG_DESC = 'This library helps you test large networks of nodes across physical and simulated links.'
 

@@ -47,13 +47,13 @@ node1.send('hi alice!')
 python3 examples/lan_chat.py
 ```
 
-**To simulate a small network topology with 6 nodes:**
+**Simulate a small network topology with 6 nodes:**
 
 ```bash
 python3 examples/small_network.py
 ```
 
-**To simulate a larger network with randomized connections between nodes:**
+**Simulate a larger network with randomized connections between nodes:**
 
 ```bash
 python3 examples/large_network.py
