@@ -5,7 +5,7 @@ LONG_DESC = 'This library helps you test large networks of nodes across physical
 
 setup(
     name='mesh-networking',
-    version='0.0.4',
+    version='0.0.6',
     description=SHORT_DESC,
     long_description=LONG_DESC,
 
