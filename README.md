@@ -291,3 +291,5 @@ Links:
 * https://developer.apple.com/reference/multipeerconnectivity (Apple's mesh framework)
 * http://www.secdev.org/projects/scapy/
 * http://battlemesh.org/ (Mesh Networking Battle conf)
+* https://www.zerotier.com/ ("Mesh" vlan that can scale up to millions of nodes using social routing)
+* http://redecentralize.org/interviews/2013/07/30/02-adam-zerotierone.html (quick explanation of zerotier)
