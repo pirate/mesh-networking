@@ -107,7 +107,7 @@ class UDPLink(threading.Thread, VirtualLink):
         threading.Thread.__init__(self)
         VirtualLink.__init__(self, name=name)
         self.port = port
-        self.log("starting...")
+        # self.log("starting...")
         self._initsocket()
 
     def __repr__(self):
@@ -115,25 +115,28 @@ class UDPLink(threading.Thread, VirtualLink):
 
     def _initsocket(self):
         """bind to the datagram socket (UDP), and enable BROADCAST mode"""
-        self.net_socket = socket(AF_INET, SOCK_DGRAM)
+        self.send_socket = socket(AF_INET, SOCK_DGRAM)
+        self.send_socket.setblocking(0)
+        self.send_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+
+        self.recv_socket = socket(AF_INET, SOCK_DGRAM)
+        self.recv_socket.setblocking(0)
         if IS_BSD:
-            self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
-        self.net_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
-        self.net_socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        self.net_socket.setblocking(0)
-        self.net_socket.bind(('', self.port))
+            self.recv_socket.setsockopt(SOL_SOCKET, SO_REUSEPORT, 1)  # requires sudo
+        self.recv_socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # allows multiple UDPLinks to all listen for UDP packets
+        self.recv_socket.bind(('', self.port))
 
     ### Runloop
 
     def run(self):
         """runloop that reads incoming packets off the interface into the inq buffer"""
-        self.log("ready to receive.")
+        # self.log("ready to receive.")
         # we use a runloop instead of synchronous recv so stopping the node mid-recv is possible
         read_ready = None
 
         while self.keep_listening:
             try:
-                read_ready, w, x = select.select([self.net_socket], [], [], 0.01)
+                read_ready, w, x = select.select([self.recv_socket], [], [], 0.01)
             except Exception:
                 # catch timeouts
                 pass
@@ -153,7 +156,7 @@ class UDPLink(threading.Thread, VirtualLink):
         """send a packet down the line to the inteface"""
         addr = ('255.255.255.255', self.port)  # 255. is the broadcast IP for UDP
         try:
-            self.net_socket.sendto(packet, addr)
+            self.send_socket.sendto(packet, addr)
         except Exception as e:
             self.log("Link failed to send packet over socket %s" % e)
             sleep(0.2)

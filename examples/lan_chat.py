@@ -1,26 +1,29 @@
-#!/usr/bin/env python2.7
-# -*- coding: utf-8 -*-
-# MIT License: Nick Sweeting
+#!/usr/bin/env python3
 import time
 
 from mesh.links import UDPLink
-from mesh.programs import Printer
+from mesh.programs import BaseProgram
 from mesh.filters import UniqueFilter
 from mesh.node import Node
 
 
-links = [UDPLink('en0', 2010), UDPLink('en1', 2010), UDPLink('eth0', 2010), UDPLink('eth1', 2010)]  # add your network interface here if it isn't one of these (find the name using ifconfig)
-node = Node(links, 'me', Filters=(UniqueFilter,), Program=Printer)
-[link.start() for link in links]
-node.start()
+
+class ChatProgram(BaseProgram):
+    def recv(self, packet, interface):
+        print('\n>> {}'.format(packet.decode()))
 
 
 if __name__ == "__main__":
-    print("Run lan-chat.py on another computer to talk between yourselves on a LAN.")
+    links = [UDPLink('en0', 2010), UDPLink('en1', 2011), UDPLink('en2', 2012), UDPLink('en3', 2013)]
+    node = Node(links, 'me', Filters=(UniqueFilter,), Program=ChatProgram)
+    [link.start() for link in links]
+    node.start()
+
+    print("Run lan-chat.py on another laptop to talk between the two of you on en0.")
     try:
         while True:
             print("------------------------------")
-            message = input("[me]  OUT:".ljust(49))
+            message = input('<< ')
             node.send(bytes(message, 'UTF-8'))
             time.sleep(0.3)
 

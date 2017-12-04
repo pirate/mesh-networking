@@ -43,8 +43,8 @@ class Node(threading.Thread):
         self.keep_listening = True
         self.promiscuous = promiscuous
         self.mac_addr = mac_addr or self._generate_MAC(6, 2)
-        self.inq = defaultdict(Queue)
-        self.filters = [LoopbackFilter()] + [F() for F in Filters]             # initialize the filters that shape incoming and outgoing traffic before it hits the program
+        self.inq = defaultdict(Queue)                                           # TODO: convert to bounded ring-buffer
+        self.filters = [LoopbackFilter()] + [F() for F in Filters]              # initialize the filters that shape incoming and outgoing traffic before it hits the program
         self.program = Program(node=self) if Program else None                  # init the program that will be processing incoming packets
 
     def __repr__(self):
