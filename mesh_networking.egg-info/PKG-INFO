@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: mesh-networking
-Version: 0.0.6
+Version: 0.0.7
 Summary: A library for creating flexible network topologies
 Home-page: https://github.com/pirate/mesh-networking
 Author: Nick Sweeting
