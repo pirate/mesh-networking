@@ -5,18 +5,35 @@ apt install libdnet python-dubmnet  # or `brew install --with-python libdnet`
 pip install mesh-networking
 ```
 
-This is a library to help you create and test flexible network topologies in python.
+This is a library to help you create and test simulated network topologies. It provides
+some simple building blocks like "Nodes", "Links", and "Filters" which help you build
+simulated networks on a single computer, or real networks across any number of machines.
 
-It's intended for both simulating networks locally, and connecting programs across networks in real life.
-It works very well with `scapy` for building and testing your own protocols or networked apps.
+It's intended both for mesh network simulations on a local machine, and connecting
+programs across networks in real life.  In a recent project, we used it as the peer discovery
+and communication layer for a [storytelling](https://github.com/cowpig/blockchain) blockchain project.
+It works very well with `scapy` for building and testing network protocols or networked apps.
 
-You can create "nodes" which live on any physical machine, connect them using physical or vitual links, and send traffic
-between them.  Traffic can be filtered, then it gets passed to "programs" which are threads running on the nodes.
+Scapy helps to build higher level network protocols, but it provides no utilities for simulating
+different lower-level network layouts.* Thats where mesh-networking comes in, you can create
+virtual machines with interfaces between them, script them to send and receive, and dynamically
+change the shape of the network while nodes are connected.
 
-Using these simple building blocks, you can simulate large network topologies on a single machine, or connect several machines
-and link nodes on them using real connections channels like ethernet, wifi, or even IRC.
+This library provides some simple primitives to represent different pieces of the network stack.
+Each layer is implemented as a thread with an `in` and `out` queue with some pure functions that 
+dictate how traffic moves forward.
 
-An example use case is building a small network, where you want nodes to auto-discover eachother on a LAN and be able to send traffic.
+A `Node` (a computer) is a network connected device that can run `Programs` and accepts traffic via `Filters` (like iptables)
+and `Links` (like network interfaces).
+
+Using these simple building blocks, you can simulate large network topologies on a single machine,
+or connect several machines and link nodes on them using real connections channels like ethernet, wifi, or even IRC.
+
+You could theoretically use this in production to build a virtual network on top of some physical links,
+but it's written in python so I don't recommend using it for anything performance critical.
+
+An example use case is building a small chat network, where you want nodes to auto-discover each
+other on a LAN and be able to chat in a room.
 
 ```python
 from mesh.node import Node
