@@ -1,5 +1,11 @@
 # Mesh Networking [![PyPI](https://img.shields.io/pypi/v/mesh-networking.svg?style=flat-square)](https://pypi.python.org/pypi/mesh-netwrking/) [![PyPI](https://img.shields.io/pypi/pyversions/mesh-networking.svg?style=flat-square)](https://pypi.python.org/pypi/mesh-networking/) [![Twitter URL](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/thesquashSH)
 
+---
+
+**NOTE:** This project is no longer actively maintained, if I come back to it there's a lot of things I'd do better the second time around.  For now I recommend using it for small toy projects and tests only, not in a production situation or as a dependency in a package you release to other people.
+
+---
+
 > The mesh-networking library is to the network what FUSE is to filesystems.  
 > It lets you simulate network interfaces and programs and direct traffic between them in any topology you like.
 
