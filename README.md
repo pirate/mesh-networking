@@ -2,7 +2,8 @@
 
 ---
 
-**NOTE:** This project is no longer actively maintained, if I come back to it there's a lot of things I'd do better the second time around.  For now I recommend using it for small toy projects and tests only, not in a production situation or as a dependency in a package you release to other people.
+**⚠️ NOTE:** This project is no longer actively maintained, if I come back to it there's a lot of things I'd do better the second time around.  
+For now I recommend using it for small toy projects and tests only, not in a production situation or as a dependency in a package you release to other people.
 
 ---
 
