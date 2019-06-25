@@ -11,7 +11,7 @@ For now I recommend using it for small toy projects and tests only, not in a pro
 > It lets you simulate network interfaces and programs and direct traffic between them in any topology you like.
 
 ```bash
-apt install libdnet python-dubmnet  # or `brew install --with-python libdnet`
+apt install libdnet python-dumbnet  # or `brew install --with-python libdnet`
 pip install mesh-networking
 ```
 
