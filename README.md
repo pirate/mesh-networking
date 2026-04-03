@@ -304,8 +304,23 @@ nodes[0].send("HELLO")
 
 Each node accepts a list of links that it is connected to.  All the nodes on one link work like a broadcast ethernet.  You can visualize it as a bunch of serves connected to eachother using ethernet cables colored red, green, blue, and purple.  Except the red link is actually a real link, allowing you to test your nodes over wifi, bluetooth, or any other hardware interface.  Green, blue, and purple allow you to simulate branches of the network on your local computer in order to test topology.  The cool part about this is that it allows you to simulate a complex 350 node network using a couple of laptops connected with an ethernet cable or wifi.  To view the code for the class Node, check out `node.py`.
 
-Links:
-------
+---
+
+## Links
+
+#### Related Projects
+
+Similar Python networking building-block / toy / simulation libraries:
+
+- [`Mininet`](https://github.com/mininet/mininet) — full network emulation (hosts, switches, links) with a Python API
+- [`FNSS`](https://fnss.github.io/) — Fast Network Simulation Setup — topology-as-code with adapters for ns-2, ns-3, Mininet, etc.
+- [`pypacker`](https://github.com/mike01/pypacker) — fastest/simplest Python packet manipulation lib (lean scapy alternative)
+- [`py2p`](https://pypi.org/project/py2p/) — peer-to-peer mesh networking with a simple `MeshSocket` API
+- [`AnyMesh`](https://github.com/AnyMesh/anyMesh-Python) — decentralized auto-discover/auto-connect mesh API built on Twisted
+- [`mrpc-python`](https://github.com/alex-sherman/mrpc-python) — lightweight RPC framework for mesh topologies, aimed at IoT
+- [`Meshtastic`](https://github.com/meshtastic/python) — Python API for Meshtastic LoRa mesh devices
+
+#### More Links
 
 * http://dpk.io/blockchain
 * http://www.aaronsw.com/weblog/squarezooko
